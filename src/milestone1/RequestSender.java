@@ -17,25 +17,44 @@ public class RequestSender {
 	private Client client;
 	private WebTarget resource;
 	private Builder request;
+	private NodeInfo thisNode;
+	private NodeInfo predecessor;
+	private NodeInfo successor;
 	
-	public RequestSender() {
+	public RequestSender( NodeInfo n) {
+		thisNode = n;
 		client = ClientBuilder.newClient();
 	}
-	
-	public void postMethod(String ip, int port, NodeInfo n, String method) {
-		client = ClientBuilder.newClient();
-		resource = client.target("http://" + ip + ":" + port + "/node/" + method);
-		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
-		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
+
+	public NodeInfo locateId(String ip, int port, String id)
+	{
+		resource = client.target("http://" + ip + ":" + port + "/successor-of/" + id);
+		return get(resource);
 	}
-	
-	public NodeInfo getMethod(String ip, int port, String id, String method) {
-		resource = client.target("http://" + ip + ":" + port + "/node/" + method + "/" + id);
+
+	public NodeInfo getNodePredecessor( NodeInfo node )
+	{
+		resource = client.target("http://" + node.getIP() + ":" +  node.getPort() + "/predecessor");
+		return get(resource);
+	}
+
+	public NodeInfo getNodeSuccessor( NodeInfo node )
+	{
+		resource = client.target("http://" + node.getIP() + ":" +  node.getPort() + "/successor");
+		return get(resource);
+	}
+
+	public NodeInfo findIdPredecessor(NodeInfo node, String id)
+	{
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor-of/" + id);
+		return get(resource);
+	}
+
+	public NodeInfo get(WebTarget resource){
 		request = resource.request();
 		request.accept(MediaType.APPLICATION_JSON);
-		
 		Response response = request.get();
-		
+
 		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
 
 			String jsonRes = response.readEntity(String.class);
@@ -53,4 +72,25 @@ public class RequestSender {
 			return null;
 		}
 	}
+
+	public void updateNodeSuccessor(NodeInfo node, NodeInfo successor){
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/successor");
+		this.put(resource, successor);
+	}
+
+	public void updateNodePredecessor(NodeInfo node, NodeInfo predecessor){
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor");
+		this.put(resource, predecessor);
+	}
+
+
+	public void put(WebTarget resource, NodeInfo n)
+	{
+		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
+	}
+
+
 }

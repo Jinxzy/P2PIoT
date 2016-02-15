@@ -6,28 +6,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.*;
+
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status.Family;
+
 
 import com.sun.net.httpserver.HttpServer;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.codehaus.jackson.map.ObjectMapper;
+
 
 
 @SuppressWarnings("restriction")
 
-@Path("/node")
+@Path("/")
 public class Node {
 	private NodeInfo thisNode;
 	private NodeInfo predecessor;
@@ -45,9 +38,16 @@ public class Node {
 		this.ip = ip;
 		this.port = port;
 		nodeServer = new NodeServer(port);
-		requestSender = new RequestSender();
 		id = hashIPPortToID(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
+		requestSender = new RequestSender(thisNode);
+	}
+
+	public void join() { //No known node, this node starts new network with just this node in it
+		predecessor = new NodeInfo(ip, port, id); //Itself
+		successor = new NodeInfo(ip, port, id); //Itself
+		System.out.println("New network created");
+		listenToRequests();
 	}
 
 	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
@@ -55,11 +55,11 @@ public class Node {
 		System.out.println(this.port + ": Joining");
 		
 		//Initialize own successor/predecessors
-		successor = requestSender.getMethod(ip, port, id, "findSuc");
+		successor = requestSender.locateId(ip, port, thisNode.getID());
 		System.out.println(this.port + " found successor: " + successor.getPort());
 		
 		//No ID needed for path
-		predecessor = requestSender.getMethod(successor.getIP(), successor.getPort(), "", "getPred");
+		predecessor = requestSender.getNodePredecessor(successor);
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		//Update successors and predecessor with this node
@@ -68,32 +68,43 @@ public class Node {
 		listenToRequests();
 		System.out.println(this.port + ": Listening");
 	}
-	
-	
-	public void join() { //No known node, this node starts new network with just this node in it
-		predecessor = new NodeInfo(ip, port, id); //Itself
-		successor = new NodeInfo(ip, port, id); //Itself
-		System.out.println("New network created");
-		listenToRequests();
+
+
+	private void updateOthers() {
+		requestSender.updateNodeSuccessor(predecessor, thisNode);
+		requestSender.updateNodePredecessor(successor, thisNode);
+
 	}
-	
+
 	public void leave() {
-		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), successor, "setSuc");
-		requestSender.postMethod(successor.getIP(), successor.getPort(), predecessor, "setPred");
+		requestSender.updateNodeSuccessor(predecessor, successor);
+		requestSender.updateNodePredecessor(successor, predecessor);
 		System.out.println(this.port + ": left network");
 	}
-	
+
+
 	@GET
-	@Path("/findSuc/{param}")
+	@Path("/status")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Map<String, NodeInfo> status() { // return the node info
+		Map<String, NodeInfo> data = new HashMap<String, NodeInfo>();
+		data.put("node", thisNode);
+		data.put("predecessor", this.predecessor);
+		data.put("successor", this.successor);
+		return data;
+	}
+
+	@GET
+	@Path("/successor-of/{param}")
 	public NodeInfo findSuccessor(@PathParam("param") String id) {
 		NodeInfo n = findPredecessor(id);
 		//No id needed for path
-		NodeInfo nSuc = requestSender.getMethod(n.getIP(), n.getPort(), "", "getSuc");
+		NodeInfo nSuc = requestSender.getNodeSuccessor(n);
 		return nSuc;
 	}
 	
 	@GET
-	@Path("/findPred/{param}")
+	@Path("/predecessor-of/{param}")
 	public NodeInfo findPredecessor(@PathParam("param") String id) {
 		
 		//Checks if the id searched for is greater/equal to this nodes ID, and smaller/equal than successors nodes ID, in which case this node should be returned
@@ -116,13 +127,10 @@ public class Node {
 			return thisNode;
 		}
 		
-		return requestSender.getMethod(successor.getIP(), successor.getPort(), id, "findPred");
+		return requestSender.findIdPredecessor(successor, id);
 	}
 	
-	private void updateOthers() {
-		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), thisNode, "setSuc");
-		requestSender.postMethod(successor.getIP(), successor.getPort(), thisNode, "setPred");
-	}
+
 	
 	public String getID() {
 		return id;
@@ -133,27 +141,27 @@ public class Node {
 	}
 	
 	@GET
-	@Path("/getPred")
+	@Path("/predecessor")
 	public NodeInfo getPredecessor() {
 		return predecessor;
 	}
 	
 	@GET
-	@Path("/getSuc")
+	@Path("/successor")
 	public NodeInfo getSuccessor() {
 		return successor;
 	}
 	
 	@POST
-	@Path("/setPred")
+	@Path("/predecessor")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response setPredecessor(NodeInfo n) {
 		predecessor = n;
 		return Response.status(200).entity(n).build();
 	}
 	
-	@POST
-	@Path("/setSuc")
+	@PUT
+	@Path("/successor")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response setSuccessor(NodeInfo n) {
 		successor = n;
@@ -183,13 +191,13 @@ public class Node {
 	}
 	
 	@GET
-	@Path("/showHTML")
+	@Path("/")
 	@Produces(MediaType.TEXT_HTML)
 	public String showHTML() {
 		
-		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "/node/showHTML";
-		String succ = "http://" + successor.getIP() + ":" + successor.getPort() + "/node/showHTML";
-		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "/node/showHTML";
+		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort();
+		String succ = "http://" + successor.getIP() + ":" + successor.getPort();
+		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort();
 		String res = "";
 		
 		res += "<html>"
@@ -225,14 +233,5 @@ public class Node {
 		return list;
 	}
 
-	@GET
-	@Path("/status")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Map<String, NodeInfo> status() { // return the node info
-		Map<String, NodeInfo> data = new HashMap<String, NodeInfo>();
-		data.put("node", thisNode);
-		data.put("predecessor", this.predecessor);
-		data.put("successor", this.successor);
-		return data;
-	}
+
 }
