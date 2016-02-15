@@ -48,7 +48,6 @@ public class RequestSender {
 		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
 
 			String jsonRes = response.readEntity(String.class);
-
 			ObjectMapper mapper = new ObjectMapper();
 			NodeInfo node = null;
 			try {
@@ -56,7 +55,6 @@ public class RequestSender {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-
 			return node;
 
 		} else {
@@ -173,5 +171,4 @@ public class RequestSender {
 			return null;
 		}
 	}
-
 }

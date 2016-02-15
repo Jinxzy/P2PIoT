@@ -91,7 +91,6 @@ public class Node {
 	@Path("/findPred/{param}")
 	public NodeInfo findPredecessor(@PathParam("param") String id) {
 		
-		
 		//Checks if the id searched for is greater/equal to this nodes ID, and smaller/equal than successors nodes ID, in which case this node should be returned
 		//if(id >= this.id && id < successorID()). 
 		if(id.compareTo(this.id) > 0 && id.compareTo(successor.getID()) <= 0) {
@@ -113,7 +112,6 @@ public class Node {
 		}
 		
 		return requestSender.findPredecessor(successor.getIP(), successor.getPort(), id);
-
 	}
 	
 	private void updateOthers() {
@@ -165,41 +163,12 @@ public class Node {
 
 	//Sets up the HTTP Server to listen for incoming requests, using the NodeServer class. Creating the server automatically starts it
 	public void listenToRequests() {
-		
 		System.out.println("Starting Server\n");		
 		try {
 			HttpServer requestHandler = nodeServer.createHttpServer(this);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	@GET
-	@Path("/{param}")
-	public Response getMsg(@PathParam("param") String msg) {
-		String output = "Jersey say : " + id;
-		return Response.status(200).entity(output).build();
-	}
-	
-	@GET
-	@Path("/returnNode")
-	@Produces(MediaType.APPLICATION_JSON)
-	public NodeInfo returnNode() { //Returns NodeInfo requests
-		NodeInfo n = new NodeInfo(ip, port, id);
-		return n;
-	}
-	
-	
-	@GET
-	@Path("/showNode")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<NodeInfo> showNode() { //Returns NodeInfo requests
-		ArrayList<NodeInfo> list = new ArrayList<NodeInfo>();
-		NodeInfo n = new NodeInfo(ip, port, id);
-		list.add(n);
-		list.add(predecessor);
-		list.add(successor);
-		return list;
 	}
 	
 	@GET
@@ -221,5 +190,27 @@ public class Node {
 				+ "</html>";
 		
 		return res;
+	}
+	
+	//Probably unnecessary?
+	@GET
+	@Path("/returnNode")
+	@Produces(MediaType.APPLICATION_JSON)
+	public NodeInfo returnNode() { //Returns NodeInfo requests
+		NodeInfo n = new NodeInfo(ip, port, id);
+		return n;
+	}
+	
+	//Probably unnecessary?
+	@GET
+	@Path("/showNode")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<NodeInfo> showNode() { //Returns NodeInfo requests
+		ArrayList<NodeInfo> list = new ArrayList<NodeInfo>();
+		NodeInfo n = new NodeInfo(ip, port, id);
+		list.add(n);
+		list.add(predecessor);
+		list.add(successor);
+		return list;
 	}
 }
