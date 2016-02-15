@@ -1,120 +1,225 @@
 package milestone1;
 
-import org.apache.commons.codec.digest.DigestUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status.Family;
+
+import com.sun.net.httpserver.HttpServer;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.codehaus.jackson.map.ObjectMapper;
+
+
+@SuppressWarnings("restriction")
+
+@Path("/node")
 public class Node {
-	private Node predecessor;
-	private Node successor;
+	private NodeInfo thisNode;
+	private NodeInfo predecessor;
+	private NodeInfo successor;
+	private RequestSender requestSender;
 	private String id;
 	
-	//Mostly for testing purposes
 	private String ip;
-	private String port;
+	private int port;
+	private NodeServer nodeServer;
 	
-	public Node(String ip, String port) {
+	
+	public Node(String ip, int port) {
 		this.ip = ip;
 		this.port = port;
-		id = DigestUtils.sha1Hex(ip + ":" + port); //Sha1 hash using Apache commons library
+		nodeServer = new NodeServer(port);
+		requestSender = new RequestSender();
+		id = hashIPPortToID(ip, port);
+		thisNode = new NodeInfo(ip, port, id);
 	}
 
-	public void join(Node n) { //n is existing known node to bootstrap into the network
+	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
+
+		System.out.println(this.port + ": Joining");
+		
 		//Initialize own successor/predecessors
-		successor = n.findSuccessor(id);
-		System.out.println(port + " found successor: " + successor.getPort());
-		predecessor = successor.getPredecessor();
-		System.out.println(port + " found predecessor: " + predecessor.getPort());
+		successor = requestSender.findSuccessor(ip, port, id);
+		System.out.println(this.port + " found successor: " + successor.getPort());
+		
+		predecessor = requestSender.getPredecessor(successor.getIP(), successor.getPort());
+		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		//Update successors and predecessor with this node
 		System.out.println("Updating other peers");
 		updateOthers(); 
-		
+		listenToRequests();
+		System.out.println(this.port + ": Listening");
 	}
 	
+	
 	public void join() { //No known node, this node starts new network with just this node in it
-		predecessor = this;
-		successor = this;
+		predecessor = new NodeInfo(ip, port, id); //Itself
+		successor = new NodeInfo(ip, port, id); //Itself
 		System.out.println("New network created");
+		listenToRequests();
 	}
 	
 	public void leave() {
-		predecessor.setSuccessor(successor);
-		successor.setPredecessor(predecessor);
+		//TODO
+//		predecessor.setSuccessor(successor);
+//		successor.setPredecessor(predecessor);
 	}
 	
-	public Node findSuccessor(String id) {
-		Node n = findPredecessor(id);
-		return n.successor;
-		
+	@GET
+	@Path("/findSuc/{param}")
+	public NodeInfo findSuccessor(@PathParam("param") String id) {
+		NodeInfo n = findPredecessor(id);
+		NodeInfo nSuc = requestSender.getSuccessor(n.getIP(), n.getPort());
+		return nSuc;
 	}
 	
-	//The two checks here could be combined into one for efficiency, but I left them like this for now for clarity
-	public Node findPredecessor(String id) {
+	@GET
+	@Path("/findPred/{param}")
+	public NodeInfo findPredecessor(@PathParam("param") String id) {
 		
-		//Check if searched ID is greater/equal to this node, AND this nodes successor ID is smaller than this node's ID. 
-		//If this is the case, we're crossing the "0-line" of the ring, and this node must be predecessor 
-		//if (id >= this.id && successorID < this.id) 
-		if(id.compareTo(this.id) >= 0 && successor.getID().compareTo(this.id) <= 0) {
-			return this;
-		}
 		
 		//Checks if the id searched for is greater/equal to this nodes ID, and smaller than successors nodes ID, in which case this node should be returned
 		//if(id >= this.id && id < successorID()). 
-		else if(id.compareTo(this.id) >= 0 && id.compareTo(successor.getID()) < 0) {
-			return this;
+		if(id.compareTo(this.id) >= 0 && id.compareTo(successor.getID()) < 0) {
+			return thisNode;
 		}
-		else return successor.findPredecessor(id);
 		
+		//Check if successor is smaller than this node ID, and if searched ID is in between. If so we're crossing the '0' line, and this node is predecessor
+		//if(succID < this.id)
+		  //if(id > this.id || id < succID
+		else if(successor.getID().compareTo(this.id) < 0) {
+			if(id.compareTo(this.id) > 0 || id.compareTo(successor.getID()) < 0) {
+				return thisNode;
+			}
+		}
+		
+		//Special case, only this node in network
+		else if(successor.getID() == this.id && predecessor.getID() == this.id) {
+			return thisNode;
+		}
+		
+		return requestSender.findPredecessor(successor.getIP(), successor.getPort(), id);
+
 	}
 	
 	private void updateOthers() {
-		predecessor.setSuccessor(this);
-		successor.setPredecessor(this);
+		requestSender.setPredecessor(predecessor.getIP(), predecessor.getPort(), thisNode);
+		requestSender.setSuccessor(successor.getIP(), successor.getPort(), thisNode);
 	}
 	
 	public String getID() {
 		return id;
 	}
 	
-	public String getPort() {
+	public int getPort() {
 		return port;
 	}
 	
-	public Node getPredecessor() {
+	@GET
+	@Path("/getPred")
+	public NodeInfo getPredecessor() {
 		return predecessor;
 	}
 	
-	public Node getSuccessor() {
+	@GET
+	@Path("/getSuc")
+	public NodeInfo getSuccessor() {
 		return successor;
 	}
 	
-	public void setPredecessor(Node n) {
+	@POST
+	@Path("/setPred")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response setPredecessor(NodeInfo n) {
 		predecessor = n;
+		return Response.status(200).entity(n).build();
 	}
 	
-	public void setSuccessor(Node n) {
+	@POST
+	@Path("/setSuc")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response setSuccessor(NodeInfo n) {
 		successor = n;
+		return Response.status(200).entity(n).build();
 	}
 	
-	//This was supposed to handle updating peers when entering the network more safely than a public setter for succ/pred, but didn't work so I left it for later
 	
-//	public void updateTables(Node n) {
-//		System.out.println(port + ": updating successor");
-//		//If received node's ID is between this and successor, make it the new successor
-//		//if (nID > this.id && nID <= successorID)
-//		if(this.id.compareTo(n.getID()) < 0 && n.getID().compareTo(successor.getID()) >= 0) {
-//			successor = n;
-//			System.out.println(port + ": New successor: " + n.port);
-//		}
-//		
-//		System.out.println(port + ": updating predecessor");
-//		//If received node's ID is between this and predecessor, make it the new predecessor
-//		//if (nID < this.id && nID > predecessorID)
-//		if(n.getID().compareTo(this.id) > 0 && predecessor.getID().compareTo(n.getID()) <= 0 )
-//		{
-//			predecessor = n;
-//			System.out.println(port + ": New predecessor: " + n.port);
-//		}
-//	}
-//	
+	private String hashIPPortToID(String ip, int port) {
+		String res = DigestUtils.sha1Hex(ip + ":" + port); //Sha1 hash using Apache commons library
+		return res;
+	}
+
+	//Sets up the HTTP Server to listen for incoming requests, using the NodeServer class. Creating the server automatically starts it
+	public void listenToRequests() {
+		
+		System.out.println("Starting Server\n");		
+		try {
+			HttpServer requestHandler = nodeServer.createHttpServer(this);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	
+	@GET
+	@Path("/{param}")
+	public Response getMsg(@PathParam("param") String msg) {
+		String output = "Jersey say : " + id;
+		return Response.status(200).entity(output).build();
+	}
+	
+	@GET
+	@Path("/returnNode")
+	@Produces(MediaType.APPLICATION_JSON)
+	public NodeInfo returnNode() { //Returns NodeInfo requests
+		NodeInfo n = new NodeInfo(ip, port, id);
+		return n;
+	}
+	
+	
+	@GET
+	@Path("/showNode")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<NodeInfo> showNode() { //Returns NodeInfo requests
+		ArrayList<NodeInfo> list = new ArrayList<NodeInfo>();
+		NodeInfo n = new NodeInfo(ip, port, id);
+		list.add(n);
+		list.add(predecessor);
+		list.add(successor);
+		return list;
+	}
+	
+	@GET
+	@Path("/showHTML")
+	@Produces(MediaType.TEXT_HTML)
+	public String showHTML() {
+		
+		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "/node/showHTML";
+		String succ = "http://" + successor.getIP() + ":" + successor.getPort() + "/node/showHTML";
+		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "/node/showHTML";
+		String res = "";
+		
+		res += "<html>"
+				+ "<body>"
+				+ "This node: <a href=" + linkAddr + ">" + "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "</a> " + thisNode.getID()  + "<br>"
+				+ "Successor: <a href=" + succ + ">" + "http://" + successor.getIP() + ":" + successor.getPort() + "</a> " + successor.getID()  + " <br>"
+				+ "Predecessor: <a href=" + pred + ">" + "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "</a> " + predecessor.getID()  + " <br>"
+				+ "</body>"
+				+ "</html>";
+		
+		return res;
+	}
 }
