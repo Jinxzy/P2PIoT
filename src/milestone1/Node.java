@@ -31,6 +31,7 @@ public class Node {
 	private NodeInfo predecessor;
 	private NodeInfo successor;
 	private RequestSender requestSender;
+	private HttpServer requestHandler;
 	private String id;
 	
 	private String ip;
@@ -165,10 +166,14 @@ public class Node {
 	public void listenToRequests() {
 		System.out.println("Starting Server\n");		
 		try {
-			HttpServer requestHandler = nodeServer.createHttpServer(this);
+			requestHandler = nodeServer.createHttpServer(this);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void stopListening() {
+		requestHandler.stop(0);
 	}
 	
 	@GET
