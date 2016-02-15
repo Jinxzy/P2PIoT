@@ -173,7 +173,9 @@ public class Node {
 	}
 	
 	public void stopListening() {
-		requestHandler.stop(0);
+		if (!(requestHandler == null)){
+			requestHandler.stop(0);
+		}
 	}
 	
 	@GET

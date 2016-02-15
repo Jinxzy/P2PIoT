@@ -24,7 +24,8 @@ public class NodeUnitTest {
 	
 	@After
 	public void teardown() {
-		
+		n1.stopListening();
+		n2.stopListening();
 	}
 	
 	@Test
