@@ -26,7 +26,7 @@ public class RequestSender {
 		client = ClientBuilder.newClient();
 	}
 
-	public NodeInfo locateId(String ip, int port, String id)
+	public NodeInfo findIdSuccessor(String ip, int port, String id)
 	{
 		resource = client.target("http://" + ip + ":" + port + "/successor-of/" + id);
 		return get(resource);
@@ -41,6 +41,12 @@ public class RequestSender {
 	public NodeInfo getNodeSuccessor( NodeInfo node )
 	{
 		resource = client.target("http://" + node.getIP() + ":" +  node.getPort() + "/successor");
+		return get(resource);
+	}
+
+	public NodeInfo findIdSuccessor(NodeInfo node, String id)
+	{
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/successor-of/" + id);
 		return get(resource);
 	}
 
@@ -89,7 +95,7 @@ public class RequestSender {
 	public void put(WebTarget resource, NodeInfo n)
 	{
 		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
-		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
+		Response res = ib.put(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
 
 

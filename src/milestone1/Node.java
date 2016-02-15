@@ -55,7 +55,7 @@ public class Node {
 		System.out.println(this.port + ": Joining");
 		
 		//Initialize own successor/predecessors
-		successor = requestSender.locateId(ip, port, thisNode.getID());
+		successor = requestSender.findIdSuccessor(ip, port, thisNode.getID());
 		System.out.println(this.port + " found successor: " + successor.getPort());
 		
 		//No ID needed for path
@@ -152,7 +152,7 @@ public class Node {
 		return successor;
 	}
 	
-	@POST
+	@PUT
 	@Path("/predecessor")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response setPredecessor(NodeInfo n) {
@@ -191,13 +191,13 @@ public class Node {
 	}
 	
 	@GET
-	@Path("/")
+	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String showHTML() {
 		
-		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort();
-		String succ = "http://" + successor.getIP() + ":" + successor.getPort();
-		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort();
+		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "/index";
+		String succ = "http://" + successor.getIP() + ":" + successor.getPort() + "/index";
+		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "/index";
 		String res = "";
 		
 		res += "<html>"
