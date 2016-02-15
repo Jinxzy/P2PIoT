@@ -52,10 +52,10 @@ public class Node {
 		System.out.println(this.port + ": Joining");
 		
 		//Initialize own successor/predecessors
-		successor = requestSender.findSuccessor(ip, port, id);
+		successor = requestSender.findMethod(ip, port, id, "findSuc");
 		System.out.println(this.port + " found successor: " + successor.getPort());
 		
-		predecessor = requestSender.getPredecessor(successor.getIP(), successor.getPort());
+		predecessor = requestSender.getMethod(successor.getIP(), successor.getPort(), "getPred");
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		//Update successors and predecessor with this node
@@ -74,8 +74,8 @@ public class Node {
 	}
 	
 	public void leave() {
-		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), successor);
-		requestSender.setPredecessor(successor.getIP(), successor.getPort(), predecessor);
+		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), successor, "setSuc");
+		requestSender.postMethod(successor.getIP(), successor.getPort(), predecessor, "setPred");
 		System.out.println(this.port + ": left network");
 	}
 	
@@ -83,7 +83,7 @@ public class Node {
 	@Path("/findSuc/{param}")
 	public NodeInfo findSuccessor(@PathParam("param") String id) {
 		NodeInfo n = findPredecessor(id);
-		NodeInfo nSuc = requestSender.getSuccessor(n.getIP(), n.getPort());
+		NodeInfo nSuc = requestSender.getMethod(n.getIP(), n.getPort(), "getSuc");
 		return nSuc;
 	}
 	
@@ -111,12 +111,12 @@ public class Node {
 			return thisNode;
 		}
 		
-		return requestSender.findPredecessor(successor.getIP(), successor.getPort(), id);
+		return requestSender.findMethod(successor.getIP(), successor.getPort(), id, "findPred");
 	}
 	
 	private void updateOthers() {
-		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), thisNode);
-		requestSender.setPredecessor(successor.getIP(), successor.getPort(), thisNode);
+		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), thisNode, "setSuc");
+		requestSender.postMethod(successor.getIP(), successor.getPort(), thisNode, "setPred");
 	}
 	
 	public String getID() {
