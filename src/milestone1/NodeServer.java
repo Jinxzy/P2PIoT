@@ -22,7 +22,7 @@ public class NodeServer {
 	//ResourceConfig defines where the resources (classes with tagged methods) responsible for HTTP requests are.
 	//By sending the Node object to this class and registering it, the Node retains its information (ID, successor, predecessor etc.)
 	public HttpServer createHttpServer(Node n) throws IOException {
-        ResourceConfig resourceConfig = new ResourceConfig(NodeAPI.class);
+        ResourceConfig resourceConfig = new ResourceConfig();
         resourceConfig.register(n);
         return JdkHttpServerFactory.createHttpServer(getURI(), resourceConfig);
     }
