@@ -53,10 +53,11 @@ public class Node {
 		System.out.println(this.port + ": Joining");
 		
 		//Initialize own successor/predecessors
-		successor = requestSender.findMethod(ip, port, id, "findSuc");
+		successor = requestSender.getMethod(ip, port, id, "findSuc");
 		System.out.println(this.port + " found successor: " + successor.getPort());
 		
-		predecessor = requestSender.getMethod(successor.getIP(), successor.getPort(), "getPred");
+		//No ID needed for path
+		predecessor = requestSender.getMethod(successor.getIP(), successor.getPort(), "", "getPred");
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		//Update successors and predecessor with this node
@@ -84,7 +85,8 @@ public class Node {
 	@Path("/findSuc/{param}")
 	public NodeInfo findSuccessor(@PathParam("param") String id) {
 		NodeInfo n = findPredecessor(id);
-		NodeInfo nSuc = requestSender.getMethod(n.getIP(), n.getPort(), "getSuc");
+		//No id needed for path
+		NodeInfo nSuc = requestSender.getMethod(n.getIP(), n.getPort(), "", "getSuc");
 		return nSuc;
 	}
 	
@@ -112,7 +114,7 @@ public class Node {
 			return thisNode;
 		}
 		
-		return requestSender.findMethod(successor.getIP(), successor.getPort(), id, "findPred");
+		return requestSender.getMethod(successor.getIP(), successor.getPort(), id, "findPred");
 	}
 	
 	private void updateOthers() {

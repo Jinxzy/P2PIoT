@@ -29,7 +29,7 @@ public class RequestSender {
 		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
 	
-	public NodeInfo findMethod(String ip, int port, String id, String method) {
+	public NodeInfo getMethod(String ip, int port, String id, String method) {
 		resource = client.target("http://" + ip + ":" + port + "/node/" + method + "/" + id);
 		request = resource.request();
 		request.accept(MediaType.APPLICATION_JSON);
@@ -46,33 +46,6 @@ public class RequestSender {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			return node;
-
-		} else {
-			System.out.println("Error requesting node! " + response.getStatus());
-			return null;
-		}
-	}
-	
-	public NodeInfo getMethod (String ip, int port, String method) {
-		resource = client.target("http://" + ip + ":" + port + "/node/" + method);
-		request = resource.request();
-		request.accept(MediaType.APPLICATION_JSON);
-
-		Response response = request.get();
-
-		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
-
-			String jsonRes = response.readEntity(String.class);
-
-			ObjectMapper mapper = new ObjectMapper();
-			NodeInfo node = null;
-			try {
-				node = mapper.readValue(jsonRes, NodeInfo.class);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
 			return node;
 
 		} else {
