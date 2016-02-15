@@ -15,5 +15,7 @@ public class RestTest {
 		n5.join("localhost", 50004); //e
 		
 		n2.leave();
+		
+		// 1 -> 4 -> 5 -> 3
 	}
 }

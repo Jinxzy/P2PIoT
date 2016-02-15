@@ -31,6 +31,7 @@ public class Node {
 	private NodeInfo predecessor;
 	private NodeInfo successor;
 	private RequestSender requestSender;
+	private HttpServer requestHandler;
 	private String id;
 	
 	private String ip;
@@ -52,10 +53,11 @@ public class Node {
 		System.out.println(this.port + ": Joining");
 		
 		//Initialize own successor/predecessors
-		successor = requestSender.findSuccessor(ip, port, id);
+		successor = requestSender.getMethod(ip, port, id, "findSuc");
 		System.out.println(this.port + " found successor: " + successor.getPort());
 		
-		predecessor = requestSender.getPredecessor(successor.getIP(), successor.getPort());
+		//No ID needed for path
+		predecessor = requestSender.getMethod(successor.getIP(), successor.getPort(), "", "getPred");
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		//Update successors and predecessor with this node
@@ -74,8 +76,8 @@ public class Node {
 	}
 	
 	public void leave() {
-		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), successor);
-		requestSender.setPredecessor(successor.getIP(), successor.getPort(), predecessor);
+		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), successor, "setSuc");
+		requestSender.postMethod(successor.getIP(), successor.getPort(), predecessor, "setPred");
 		System.out.println(this.port + ": left network");
 	}
 	
@@ -83,7 +85,8 @@ public class Node {
 	@Path("/findSuc/{param}")
 	public NodeInfo findSuccessor(@PathParam("param") String id) {
 		NodeInfo n = findPredecessor(id);
-		NodeInfo nSuc = requestSender.getSuccessor(n.getIP(), n.getPort());
+		//No id needed for path
+		NodeInfo nSuc = requestSender.getMethod(n.getIP(), n.getPort(), "", "getSuc");
 		return nSuc;
 	}
 	
@@ -111,12 +114,12 @@ public class Node {
 			return thisNode;
 		}
 		
-		return requestSender.findPredecessor(successor.getIP(), successor.getPort(), id);
+		return requestSender.getMethod(successor.getIP(), successor.getPort(), id, "findPred");
 	}
 	
 	private void updateOthers() {
-		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), thisNode);
-		requestSender.setPredecessor(successor.getIP(), successor.getPort(), thisNode);
+		requestSender.postMethod(predecessor.getIP(), predecessor.getPort(), thisNode, "setSuc");
+		requestSender.postMethod(successor.getIP(), successor.getPort(), thisNode, "setPred");
 	}
 	
 	public String getID() {
@@ -165,9 +168,15 @@ public class Node {
 	public void listenToRequests() {
 		System.out.println("Starting Server\n");		
 		try {
-			HttpServer requestHandler = nodeServer.createHttpServer(this);
+			requestHandler = nodeServer.createHttpServer(this);
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	public void stopListening() {
+		if (!(requestHandler == null)){
+			requestHandler.stop(0);
 		}
 	}
 	
