@@ -2,7 +2,9 @@ package milestone1;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -221,5 +223,16 @@ public class Node {
 		list.add(predecessor);
 		list.add(successor);
 		return list;
+	}
+
+	@GET
+	@Path("/status")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Map<String, NodeInfo> status() { // return the node info
+		Map<String, NodeInfo> data = new HashMap<String, NodeInfo>();
+		data.put("node", thisNode);
+		data.put("predecessor", this.predecessor);
+		data.put("successor", this.successor);
+		return data;
 	}
 }
