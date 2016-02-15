@@ -74,9 +74,9 @@ public class Node {
 	}
 	
 	public void leave() {
-		//TODO
-//		predecessor.setSuccessor(successor);
-//		successor.setPredecessor(predecessor);
+		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), successor);
+		requestSender.setPredecessor(successor.getIP(), successor.getPort(), predecessor);
+		System.out.println(this.port + ": left network");
 	}
 	
 	@GET
@@ -92,9 +92,9 @@ public class Node {
 	public NodeInfo findPredecessor(@PathParam("param") String id) {
 		
 		
-		//Checks if the id searched for is greater/equal to this nodes ID, and smaller than successors nodes ID, in which case this node should be returned
+		//Checks if the id searched for is greater/equal to this nodes ID, and smaller/equal than successors nodes ID, in which case this node should be returned
 		//if(id >= this.id && id < successorID()). 
-		if(id.compareTo(this.id) >= 0 && id.compareTo(successor.getID()) < 0) {
+		if(id.compareTo(this.id) > 0 && id.compareTo(successor.getID()) <= 0) {
 			return thisNode;
 		}
 		
@@ -117,8 +117,8 @@ public class Node {
 	}
 	
 	private void updateOthers() {
-		requestSender.setPredecessor(predecessor.getIP(), predecessor.getPort(), thisNode);
-		requestSender.setSuccessor(successor.getIP(), successor.getPort(), thisNode);
+		requestSender.setSuccessor(predecessor.getIP(), predecessor.getPort(), thisNode);
+		requestSender.setPredecessor(successor.getIP(), successor.getPort(), thisNode);
 	}
 	
 	public String getID() {
