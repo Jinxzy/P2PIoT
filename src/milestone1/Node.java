@@ -152,7 +152,7 @@ public class Node {
 		return successor;
 	}
 	
-	@PUT
+	@POST
 	@Path("/predecessor")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response setPredecessor(NodeInfo n) {
@@ -160,7 +160,7 @@ public class Node {
 		return Response.status(200).entity(n).build();
 	}
 	
-	@PUT
+	@POST
 	@Path("/successor")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response setSuccessor(NodeInfo n) {
