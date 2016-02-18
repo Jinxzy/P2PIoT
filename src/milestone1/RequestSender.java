@@ -18,9 +18,7 @@ public class RequestSender {
 	private WebTarget resource;
 	private Builder request;
 	private NodeInfo thisNode;
-	private NodeInfo predecessor;
-	private NodeInfo successor;
-	
+
 	public RequestSender( NodeInfo n) {
 		thisNode = n;
 		client = ClientBuilder.newClient();
@@ -82,13 +80,13 @@ public class RequestSender {
 	public void updateNodeSuccessor(NodeInfo node, NodeInfo successor){
 		client = ClientBuilder.newClient();
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/successor");
-		this.post(resource, successor);
+		this.put(resource, successor);
 	}
 
 	public void updateNodePredecessor(NodeInfo node, NodeInfo predecessor){
 		client = ClientBuilder.newClient();
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor");
-		this.post(resource, predecessor);
+		this.put(resource, predecessor);
 	}
 
 
@@ -98,5 +96,10 @@ public class RequestSender {
 		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
 
+	public void put(WebTarget resource, NodeInfo n)
+	{
+		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Response res = ib.put(Entity.entity(n, MediaType.APPLICATION_JSON));
+	}
 
 }
