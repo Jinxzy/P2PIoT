@@ -112,7 +112,7 @@ public class Node {
 	
 	public void printTable() {
 		for (NodeInfo n : fingers) {
-			System.out.println(n.getID());
+			System.out.println(n.getIP() + ":" + n.getPort() + "/" + n.getID());
 		}
 	}
 
