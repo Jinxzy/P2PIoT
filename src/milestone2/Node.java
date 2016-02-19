@@ -79,19 +79,36 @@ public class Node {
 		NodeInfo recentFinger = fingers[0];
 		int nextFingerID = 0;
 		
+		//This is awful, will fix later....
 		for(int i=1; i<16; i++) {
-			nextFingerID = thisNode.getID() + (int) Math.pow(2, i);
+			nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
 			
 			//If the next fingerID is lower than our previous finger, it is the same and we don't need to ask for it
-			if(nextFingerID < recentFinger.getID()) {
+			if(nextFingerID > thisNode.getID() && nextFingerID <= recentFinger.getID()) {
 				fingers[i] = recentFinger;
 			}
+			
+			//This node is the highest ID node and searched finger is higher, so same finger is set
+			else if(nextFingerID > thisNode.getID() && recentFinger.getID() < thisNode.getID()) {
+				fingers[i] = recentFinger;
+			}
+			
+			//Next finger searched crosses 0, but is still smaller than recently set finger
+			else if(nextFingerID < thisNode.getID() && recentFinger.getID() >= nextFingerID) {
+				fingers[i] = recentFinger;
+			}
+			
+			//ID searched is higher than our current finger, so we ask it to find the next one for us.
 			else {
 				recentFinger = requestSender.findIdSuccessor(ip, port, nextFingerID);
 				fingers[i] = recentFinger;
 			}
 		}
 	}
+	
+//	public void updateFingerTable(NodeInfo n, int i) {
+//		if(n.getID() >= thisNode.getID() && n.getID()  )
+//	}
 
 
 	private void updateOthers() {
