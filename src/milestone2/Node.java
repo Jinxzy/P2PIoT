@@ -49,6 +49,11 @@ public class Node {
 		predecessor = new NodeInfo(ip, port, id); //Itself
 		successor = new NodeInfo(ip, port, id); //Itself
 		
+		//Fill finger table with just this
+		for(int i=0; i<16; i++) {
+			fingers[0] = new NodeInfo(ip, port, id);
+		}
+		
 		System.out.println("New network created");
 		listenToRequests();
 		createTimer();
@@ -79,13 +84,13 @@ public class Node {
 	
 	public void initFingerTable(String ip, int port) {
 		//Set first finger, which is just immediate successor
-		fingers[0] = requestSender.findIdSuccessor(ip, port, thisNode.getID());
+		fingers[0] = successor;
 		
 		//Fill finger table
 		NodeInfo recentFinger = fingers[0];
 		int nextFingerID = 0;
 		
-		//This is awful, will fix later....
+		//This is awful, will fix later... 
 		for(int i=1; i<16; i++) {
 			nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
 			
@@ -104,8 +109,14 @@ public class Node {
 				fingers[i] = recentFinger;
 			}
 			
+			//We've come full circle and found ourself as most preceeding finger, so we will be as well for all following IDs
+			else if (recentFinger.getID() == thisNode.getID()) {
+				fingers[i] = recentFinger;
+			}
+			
 			//ID searched is higher than our current finger, so we ask it to find the next one for us.
 			else {
+				//System.out.println("Asking " + port + " to find" + nextFingerID);
 				recentFinger = requestSender.findIdSuccessor(ip, port, nextFingerID);
 				fingers[i] = recentFinger;
 			}
@@ -182,10 +193,34 @@ public class Node {
 			return thisNode;
 		}
 		
+		//Using closesPreceedingFinger doesn't work atm. I suspect we just need to update finger tables
+		//Immediately upon new joining node
 		return requestSender.findIdPredecessor(successor, id);
+		//return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
 	
-
+	
+	public NodeInfo closestPreceedingFinger(int id) {
+		for(int i=15; i>=0; i--) {
+			int fID = fingers[i].getID();
+			if(isInRange(fID, thisNode.getID(), id)) {
+				System.out.println("Returned : " + fingers[i].getID());
+				return fingers[i];
+			}
+		}
+		//Returning this node here means something went wrong with the node routing, and it will loop forever
+		System.out.println("Shouldn't happen");
+		return thisNode;
+	}
+	
+	//Doesn't check for equalities properly yet. Not sure which would be appropriate to use for all our comparisons
+	private boolean isInRange(int id, int from, int to) {
+		if(id > from && id <= to){return true;}
+		else if (id > from && to < from) {return true;}
+		else if (id < from && id < to) {return true;}
+		else if (from == to) {return true;}
+		else return false;
+	}
 	
 	public int getID() {
 		return id;
