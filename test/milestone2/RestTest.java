@@ -1,5 +1,8 @@
 package milestone2;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import milestone2.Node;
 
 public class RestTest {
@@ -9,7 +12,7 @@ public class RestTest {
 
 
 		Node[] nodes = new Node[num_nodes];
-		Node root = new Node(bootstrap_host, bootstrap_port);
+		final Node root = new Node(bootstrap_host, bootstrap_port);
 		root.join();
 		nodes[0] = root;
 		for(int i = 1; i < num_nodes; i++)
@@ -19,5 +22,14 @@ public class RestTest {
 			nodes[i].join(root.getIp(), root.getPort());
 		}
 
+		Timer timer = new Timer();
+
+		timer.schedule( new TimerTask() {
+			public void run() {
+				root.printTable();
+				System.out.println("--------------------------------\n");
+			}
+		}, 0, 10 * 1000);
+		
 	}
 }
