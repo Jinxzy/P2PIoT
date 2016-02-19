@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 @SuppressWarnings("restriction")
@@ -29,11 +31,13 @@ public class Node {
 	private String ip;
 	private int port;
 	private NodeServer nodeServer;
-
+	private Timer timer;
+	private int updateTime;
 
 	public Node(String ip, int port) {
 		this.ip = ip;
 		this.port = port;
+		updateTime = 10;
 		nodeServer = new NodeServer(port);
 		id = Key.generate16BitsKey(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
@@ -47,6 +51,7 @@ public class Node {
 		
 		System.out.println("New network created");
 		listenToRequests();
+		createTimer();
 	}
 
 	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
@@ -67,6 +72,7 @@ public class Node {
 		System.out.println("Updating other peers");
 		updateOthers(); 
 		listenToRequests();
+		createTimer();
 		System.out.println(this.port + ": Listening");
 	}
 	
@@ -106,10 +112,22 @@ public class Node {
 		}
 	}
 	
-//	public void updateFingerTable(NodeInfo n, int i) {
-//		if(n.getID() >= thisNode.getID() && n.getID()  )
-//	}
+	//Creates a timer that updates the UpdateTime in secs. 
+	public void createTimer() {
+		timer = new Timer();
 
+		timer.schedule( new TimerTask() {
+			public void run() {
+				initFingerTable(ip, port);
+			}
+		}, 0, updateTime * 1000);
+	}
+	
+	public void printTable() {
+		for (NodeInfo n : fingers) {
+			System.out.println(n.getID());
+		}
+	}
 
 	private void updateOthers() {
 		requestSender.updateNodeSuccessor(predecessor, thisNode);
@@ -119,6 +137,7 @@ public class Node {
 	public void leave() {
 		requestSender.updateNodeSuccessor(predecessor, successor);
 		requestSender.updateNodePredecessor(successor, predecessor);
+		timer.cancel();
 		System.out.println(this.port + ": left network");
 	}
 
