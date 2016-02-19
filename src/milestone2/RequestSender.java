@@ -1,16 +1,15 @@
-package milestone1;
+package milestone2;
+
+import org.codehaus.jackson.map.ObjectMapper;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.client.Invocation.Builder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status.Family;
-
-import org.codehaus.jackson.map.ObjectMapper;
 
 public class RequestSender {
 	
@@ -24,31 +23,31 @@ public class RequestSender {
 		client = ClientBuilder.newClient();
 	}
 
-	public NodeInfo findIdSuccessor(String ip, int port, String id)
+	public NodeInfo findIdSuccessor(String ip, int port, int id)
 	{
 		resource = client.target("http://" + ip + ":" + port + "/successor-of/" + id);
 		return get(resource);
 	}
 
-	public NodeInfo getNodePredecessor( NodeInfo node )
+	public NodeInfo getNodePredecessor(NodeInfo node )
 	{
 		resource = client.target("http://" + node.getIP() + ":" +  node.getPort() + "/predecessor");
 		return get(resource);
 	}
 
-	public NodeInfo getNodeSuccessor( NodeInfo node )
+	public NodeInfo getNodeSuccessor(NodeInfo node )
 	{
 		resource = client.target("http://" + node.getIP() + ":" +  node.getPort() + "/successor");
 		return get(resource);
 	}
 
-	public NodeInfo findIdSuccessor(NodeInfo node, String id)
+	public NodeInfo findIdSuccessor(NodeInfo node, int id)
 	{
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/successor-of/" + id);
 		return get(resource);
 	}
 
-	public NodeInfo findIdPredecessor(NodeInfo node, String id)
+	public NodeInfo findIdPredecessor(NodeInfo node, int id)
 	{
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor-of/" + id);
 		return get(resource);
@@ -92,13 +91,13 @@ public class RequestSender {
 
 	public void post(WebTarget resource, NodeInfo n)
 	{
-		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Builder ib = resource.request(MediaType.APPLICATION_JSON);
 		Response res = ib.post(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
 
 	public void put(WebTarget resource, NodeInfo n)
 	{
-		Invocation.Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Builder ib = resource.request(MediaType.APPLICATION_JSON);
 		Response res = ib.put(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
 
