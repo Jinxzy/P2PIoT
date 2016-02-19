@@ -24,6 +24,7 @@ public class Node {
 	private RequestSender requestSender;
 	private HttpServer requestHandler;
 	private int id;
+	private NodeInfo[] fingers;
 	
 	private String ip;
 	private int port;
@@ -34,14 +35,16 @@ public class Node {
 		this.ip = ip;
 		this.port = port;
 		nodeServer = new NodeServer(port);
-		id = Key.generate32BitsKey(ip, port);
+		id = Key.generate16BitsKey(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
 		requestSender = new RequestSender(thisNode);
+		fingers = new NodeInfo[16];
 	}
 
 	public void join() { //No known node, this node starts new network with just this node in it
 		predecessor = new NodeInfo(ip, port, id); //Itself
 		successor = new NodeInfo(ip, port, id); //Itself
+		
 		System.out.println("New network created");
 		listenToRequests();
 	}
@@ -58,18 +61,42 @@ public class Node {
 		predecessor = requestSender.getNodePredecessor(successor);
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
+		initFingerTable(ip, port);
+		
 		//Update successors and predecessor with this node
 		System.out.println("Updating other peers");
 		updateOthers(); 
 		listenToRequests();
 		System.out.println(this.port + ": Listening");
 	}
+	
+	
+	public void initFingerTable(String ip, int port) {
+		//Set first finger, which is just immediate successor
+		fingers[0] = requestSender.findIdSuccessor(ip, port, thisNode.getID());
+		
+		//Fill finger table
+		NodeInfo recentFinger = fingers[0];
+		int nextFingerID = 0;
+		
+		for(int i=1; i<16; i++) {
+			nextFingerID = thisNode.getID() + (int) Math.pow(2, i);
+			
+			//If the next fingerID is lower than our previous finger, it is the same and we don't need to ask for it
+			if(nextFingerID < recentFinger.getID()) {
+				fingers[i] = recentFinger;
+			}
+			else {
+				recentFinger = requestSender.findIdSuccessor(ip, port, nextFingerID);
+				fingers[i] = recentFinger;
+			}
+		}
+	}
 
 
 	private void updateOthers() {
 		requestSender.updateNodeSuccessor(predecessor, thisNode);
 		requestSender.updateNodePredecessor(successor, thisNode);
-
 	}
 
 	public void leave() {
@@ -160,12 +187,6 @@ public class Node {
 		successor = n;
 		return Response.status(200).entity(n).build();
 	}
-	
-	
-	private String hashIPPortToID(String ip, int port) {
-		String res = DigestUtils.sha1Hex(ip + ":" + port); //Sha1 hash using Apache commons library
-		return res;
-	}
 
 	//Sets up the HTTP Server to listen for incoming requests, using the NodeServer class. Creating the server automatically starts it
 	public void listenToRequests() {
@@ -188,21 +209,34 @@ public class Node {
 	@Produces(MediaType.TEXT_HTML)
 	public String showHTML() {
 		
-		String linkAddr = "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "/index";
-		String succ = "http://" + successor.getIP() + ":" + successor.getPort() + "/index";
-		String pred = "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "/index";
 		String res = "";
 		
 		res += "<html>"
 				+ "<body>"
-				+ "This node: <a href=" + linkAddr + ">" + "http://" + thisNode.getIP() + ":" + thisNode.getPort() + "</a> " + thisNode.getID()  + "<br>"
-				+ "Successor: <a href=" + succ + ">" + "http://" + successor.getIP() + ":" + successor.getPort() + "</a> " + successor.getID()  + " <br>"
-				+ "Predecessor: <a href=" + pred + ">" + "http://" + predecessor.getIP() + ":" + predecessor.getPort() + "</a> " + predecessor.getID()  + " <br>"
+				+ "This node: " + buildNodeLink(thisNode)
+				+ "Successor: " + buildNodeLink(successor)
+				+ "Predecessor: " + buildNodeLink(predecessor)
+				+ printFingerTable(fingers)
 				+ "</body>"
 				+ "</html>";
 		
 		return res;
 	}
+	
+	private String buildNodeLink(NodeInfo n) {
+		if (n == null) {return null;}
+		String linkAddr = "http://" + n.getIP() + ":" + n.getPort() + "/index";
+		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort() + "</a> " + n.getID()  + "<br>";
+	}
+	
+	private String printFingerTable(NodeInfo[] fingers) {
+		String res = "Fingers: <br>";
+		for (NodeInfo n : fingers) {
+			if(n != null) {res += n.getID() + "<br>";}
+		}
+		return res;
+	}
+	
 	
 	//Probably unnecessary?
 	@GET

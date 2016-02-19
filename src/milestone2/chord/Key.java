@@ -20,5 +20,13 @@ public class Key {
         String short_key = long_key.substring(0, 7);
         return Integer.parseInt(short_key, 16);
     };
+    
+    public static int  generate16BitsKey(String host, int port) {return generate16BitsKey(host + port);}
+    public static int generate16BitsKey(String key)
+    {
+        String long_key = DigestUtils.sha1Hex(key);
+        String short_key = long_key.substring(0, 4);
+        return Integer.parseInt(short_key, 16);
+    };
 
 }
