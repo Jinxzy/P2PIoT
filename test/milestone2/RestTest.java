@@ -21,15 +21,5 @@ public class RestTest {
 			nodes[i] = new Node(bootstrap_host, port);
 			nodes[i].join(root.getIp(), root.getPort());
 		}
-
-		Timer timer = new Timer();
-
-		timer.schedule( new TimerTask() {
-			public void run() {
-				root.printTable();
-				System.out.println("--------------------------------\n");
-			}
-		}, 0, 10 * 1000);
-		
 	}
 }

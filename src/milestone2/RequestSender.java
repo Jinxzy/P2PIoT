@@ -87,6 +87,12 @@ public class RequestSender {
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor");
 		this.put(resource, predecessor);
 	}
+	
+	public void updateFingerTable(NodeInfo target, NodeInfo sender, int fingerNr) {
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/update" + "/" + fingerNr);
+		this.put(resource, sender);
+	}
 
 
 	public void post(WebTarget resource, NodeInfo n)

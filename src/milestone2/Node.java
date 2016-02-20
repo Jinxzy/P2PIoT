@@ -2,7 +2,6 @@ package milestone2;
 
 import com.sun.net.httpserver.HttpServer;
 import milestone2.chord.Key;
-import org.apache.commons.codec.digest.DigestUtils;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -51,12 +50,11 @@ public class Node {
 		
 		//Fill finger table with just this
 		for(int i=0; i<16; i++) {
-			fingers[0] = new NodeInfo(ip, port, id);
+			fingers[i] = new NodeInfo(ip, port, id);
 		}
 		
 		System.out.println("New network created");
 		listenToRequests();
-		createTimer();
 	}
 
 	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
@@ -72,13 +70,12 @@ public class Node {
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		initFingerTable(ip, port);
+		listenToRequests();
+		System.out.println(this.port + ": Listening");
 		
 		//Update successors and predecessor with this node
 		System.out.println("Updating other peers");
 		updateOthers(); 
-		listenToRequests();
-		createTimer();
-		System.out.println(this.port + ": Listening");
 	}
 	
 	
@@ -90,37 +87,33 @@ public class Node {
 		NodeInfo recentFinger = fingers[0];
 		int nextFingerID = 0;
 		
-		//This is awful, will fix later... 
 		for(int i=1; i<16; i++) {
 			nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
 			
-			//If the next fingerID is lower than our previous finger, it is the same and we don't need to ask for it
-			if(nextFingerID > thisNode.getID() && nextFingerID <= recentFinger.getID()) {
-				fingers[i] = recentFinger;
-			}
-			
-			//This node is the highest ID node and searched finger is higher, so same finger is set
-			else if(nextFingerID > thisNode.getID() && recentFinger.getID() < thisNode.getID()) {
-				fingers[i] = recentFinger;
-			}
-			
-			//Next finger searched crosses 0, but is still smaller than recently set finger
-			else if(nextFingerID < thisNode.getID() && recentFinger.getID() >= nextFingerID) {
-				fingers[i] = recentFinger;
-			}
-			
-			//We've come full circle and found ourself as most preceeding finger, so we will be as well for all following IDs
-			else if (recentFinger.getID() == thisNode.getID()) {
+			if(isInRange(nextFingerID, thisNode.getID(), recentFinger.getID())) {
 				fingers[i] = recentFinger;
 			}
 			
 			//ID searched is higher than our current finger, so we ask it to find the next one for us.
 			else {
-				//System.out.println("Asking " + port + " to find" + nextFingerID);
 				recentFinger = requestSender.findIdSuccessor(ip, port, nextFingerID);
 				fingers[i] = recentFinger;
 			}
+			
 		}
+	}
+	
+	@PUT
+	@Path("/update/{param}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response updateFingerTable(NodeInfo n, @PathParam("param") int fingerNr) {
+		
+		if(isInRange(n.getID(), thisNode.getID(), fingers[fingerNr].getID())){
+			fingers[fingerNr] = n;
+			requestSender.updateFingerTable(predecessor, n, fingerNr);
+		}
+		
+		return Response.status(200).entity(n).build();
 	}
 	
 	//Creates a timer that updates the UpdateTime in secs. 
@@ -143,6 +136,15 @@ public class Node {
 	private void updateOthers() {
 		requestSender.updateNodeSuccessor(predecessor, thisNode);
 		requestSender.updateNodePredecessor(successor, thisNode);
+		
+		int preceedingNodeID;
+		
+		for(int i=0; i<16; i++) {
+			preceedingNodeID = ((int)Math.pow(2, 16) + thisNode.getID() - (int)Math.pow(2, i)) % (int)Math.pow(2, 16);
+			
+			NodeInfo p = findPredecessor(preceedingNodeID);
+			requestSender.updateFingerTable(p, thisNode, i);
+		}
 	}
 
 	public void leave() {
@@ -151,7 +153,6 @@ public class Node {
 		timer.cancel();
 		System.out.println(this.port + ": left network");
 	}
-
 
 	@GET
 	@Path("/status")
@@ -215,11 +216,11 @@ public class Node {
 	
 	//Doesn't check for equalities properly yet. Not sure which would be appropriate to use for all our comparisons
 	private boolean isInRange(int id, int from, int to) {
-		if(id > from && id <= to){return true;}
-		else if (id > from && to < from) {return true;}
-		else if (id < from && id < to) {return true;}
+		if(id >= from && id < to){return true;}
+		else if (to < from) {
+			if (id > from || id < to) {return true;}}
 		else if (from == to) {return true;}
-		else return false;
+		return false;
 	}
 	
 	public int getID() {
@@ -229,6 +230,7 @@ public class Node {
 	public int getPort() {
 		return port;
 	}
+	
 	public String getIp() {return ip; }
 	
 	@GET
