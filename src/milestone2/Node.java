@@ -196,8 +196,8 @@ public class Node {
 		
 		//Using closesPreceedingFinger doesn't work atm. I suspect we just need to update finger tables
 		//Immediately upon new joining node
-		return requestSender.findIdPredecessor(successor, id);
-		//return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
+		//return requestSender.findIdPredecessor(successor, id);
+		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
 	
 	
@@ -205,7 +205,6 @@ public class Node {
 		for(int i=15; i>=0; i--) {
 			int fID = fingers[i].getID();
 			if(isInRange(fID, thisNode.getID(), id)) {
-				System.out.println("Returned : " + fingers[i].getID());
 				return fingers[i];
 			}
 		}
