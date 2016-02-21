@@ -164,7 +164,7 @@ public class Node {
 		data.put("successor", this.successor);
 		return data;
 	}
-
+	
 	@GET
 	@Path("/successor-of/{param}")
 	public NodeInfo findSuccessor(@PathParam("param") int id) {
@@ -280,7 +280,6 @@ public class Node {
 	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String showHTML() {
-		
 		String res = "";
 		
 		res += "<html>"
@@ -292,6 +291,35 @@ public class Node {
 				+ "</body>"
 				+ "</html>";
 		
+		return res;
+	}
+	
+	@GET
+	@Path("/successor-of/{param}")
+	@Produces(MediaType.TEXT_HTML)
+	public String showSuccesorOf(@PathParam("param") int id) {
+		NodeInfo n = findSuccessor(id);
+		return standardJsonToHtml(n);
+	}
+	
+	@GET
+	@Path("/predecessor-of/{param}")
+	@Produces(MediaType.TEXT_HTML)
+	public String showPredecessorOf(@PathParam("param") int id) {
+		NodeInfo n = findPredecessor(id);
+		return standardJsonToHtml(n);
+	}
+	
+	private String standardJsonToHtml(NodeInfo n) {
+		String res = "";	
+		res += "<html>"
+				+ "<body>"
+				+ "This node information: <br>" 
+				+ "ID: " + n.getID() + "<br>"
+				+ "IP: " + n.getIP() + "<br>"
+				+ "Port: " + n.getPort() + "<br>"
+				+ "</body>"
+				+ "</html>";
 		return res;
 	}
 	
