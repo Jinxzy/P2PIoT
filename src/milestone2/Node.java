@@ -70,12 +70,14 @@ public class Node {
 		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 		
 		initFingerTable(ip, port);
+		
 		listenToRequests();
 		System.out.println(this.port + ": Listening");
 		
 		//Update successors and predecessor with this node
 		System.out.println("Updating other peers");
 		updateOthers(); 
+		System.out.println("Join complete!");
 	}
 	
 	
@@ -181,25 +183,31 @@ public class Node {
 		//Checks if the id searched for is greater/equal to this nodes ID, and smaller/equal than successors nodes ID, in which case this node should be returned
 		//if(id >= this.id && id < successorID()).
 		if( this.id < id &&  successor.getID() >= id){
+			System.out.println(this.id + ": Routing done");
 			return thisNode;
 		}
 		//Check if successor is smaller than this node ID, and if searched ID is in between. If so we're crossing the '0' line, and this node is predecessor
 		//if(succID < this.id)
 		  //if(id > this.id || id < succID
 		else if( successor.getID() < this.id ) { // we are the highest id in the hood
-			if (this.id < id || successor.getID() >= id) return thisNode;
+			if (this.id < id || successor.getID() >= id) {
+				System.out.println(this.id + ": Routing done");
+				return thisNode;
+			}
 		}
 		//Special case, only this node in network
 		else if(successor.getID() == this.id) {
+			System.out.println(this.id + ": Routing done");
 			return thisNode;
 		}
 		
 		//Using closesPreceedingFinger doesn't work atm. I suspect we just need to update finger tables
 		//Immediately upon new joining node
 		
-		System.out.println(this.id + ": Routed to next node!");
-		//return requestSender.findIdPredecessor(successor, id);
-		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
+		System.out.println(this.id + ": Routed to node " + successor.getID());
+		return requestSender.findIdPredecessor(successor, id);
+		//System.out.println(this.id + ": Routed to node " + closestPreceedingFinger(id).getID());
+		//return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
 	
 	
@@ -301,7 +309,8 @@ public class Node {
 	@Produces(MediaType.TEXT_HTML)
 	public String showSuccesorOf(@PathParam("param") int id) {
 		NodeInfo n = findSuccessor(id);
-		return standardJsonToHtml(n);
+		return(requestSender.displayIndexPage(n));
+		//return standardJsonToHtml(n);
 	}
 	
 	@GET
@@ -309,7 +318,8 @@ public class Node {
 	@Produces(MediaType.TEXT_HTML)
 	public String showPredecessorOf(@PathParam("param") int id) {
 		NodeInfo n = findPredecessor(id);
-		return standardJsonToHtml(n);
+		return(requestSender.displayIndexPage(n));
+		//return standardJsonToHtml(n);
 	}
 	
 	private String standardJsonToHtml(NodeInfo n) {
@@ -338,29 +348,4 @@ public class Node {
 		}
 		return res;
 	}
-	
-	
-	//Probably unnecessary?
-	@GET
-	@Path("/returnNode")
-	@Produces(MediaType.APPLICATION_JSON)
-	public NodeInfo returnNode() { //Returns NodeInfo requests
-		NodeInfo n = new NodeInfo(ip, port, id);
-		return n;
-	}
-	
-	//Probably unnecessary?
-	@GET
-	@Path("/showNode")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<NodeInfo> showNode() { //Returns NodeInfo requests
-		ArrayList<NodeInfo> list = new ArrayList<NodeInfo>();
-		NodeInfo n = new NodeInfo(ip, port, id);
-		list.add(n);
-		list.add(predecessor);
-		list.add(successor);
-		return list;
-	}
-
-
 }

@@ -75,6 +75,22 @@ public class RequestSender {
 			return null;
 		}
 	}
+	
+	public String getString(WebTarget resource){
+		request = resource.request();
+		request.accept(MediaType.TEXT_HTML);
+		Response response = request.get();
+
+		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
+
+			String res = response.readEntity(String.class);
+			return res;
+
+		} else {
+			System.out.println("Error requesting node! " + response.getStatus());
+			return null;
+		}
+	}
 
 	public void updateNodeSuccessor(NodeInfo node, NodeInfo successor){
 		client = ClientBuilder.newClient();
@@ -92,6 +108,12 @@ public class RequestSender {
 		client = ClientBuilder.newClient();
 		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/update" + "/" + fingerNr);
 		this.put(resource, sender);
+	}
+	
+	public String displayIndexPage(NodeInfo node) {
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/index");
+		return getString(resource);
 	}
 
 
