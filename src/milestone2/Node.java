@@ -196,6 +196,8 @@ public class Node {
 		
 		//Using closesPreceedingFinger doesn't work atm. I suspect we just need to update finger tables
 		//Immediately upon new joining node
+		
+		System.out.println(this.id + ": Routed to next node!");
 		//return requestSender.findIdPredecessor(successor, id);
 		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
