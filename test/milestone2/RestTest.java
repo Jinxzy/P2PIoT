@@ -7,7 +7,7 @@ import milestone2.Node;
 
 public class RestTest {
 	public static void main(String[] args) {
-		int num_nodes = 25, multiplier = 2, bootstrap_port = 50001;
+		int num_nodes = 10, multiplier = 2, bootstrap_port = 50001;
 		String bootstrap_host = "localhost";
 
 
