@@ -36,7 +36,7 @@ public class Node {
 	public Node(String ip, int port) {
 		this.ip = ip;
 		this.port = port;
-		updateTime = 10;
+		updateTime = 30;
 		nodeServer = new NodeServer(port);
 		id = Key.generate16BitsKey(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
@@ -118,13 +118,27 @@ public class Node {
 		return Response.status(200).entity(n).build();
 	}
 	
-	//Creates a timer that updates the UpdateTime in secs. 
-	public void createTimer() {
+	//Creates a timer that updates the figners UpdateTime in secs. 
+	public void createTimerUpdateFingers() {
 		timer = new Timer();
 
 		timer.schedule( new TimerTask() {
 			public void run() {
 				initFingerTable(ip, port);
+			}
+		}, 0, updateTime * 1000);
+	}
+	
+	//Checks the predecessor every UpdateTime in secs.
+	public void createTimerCheckPredecessor() {
+		timer = new Timer();
+
+		timer.schedule( new TimerTask() {
+			public void run() {
+				NodeInfo n = requestSender.getNodePredecessor(thisNode);
+				if (n == null) {
+					predecessor = requestSender.findIdPredecessor(thisNode, thisNode.getID());
+				}
 			}
 		}, 0, updateTime * 1000);
 	}
@@ -205,9 +219,9 @@ public class Node {
 		//Immediately upon new joining node
 		
 		System.out.println(this.id + ": Routed to node " + successor.getID());
-		return requestSender.findIdPredecessor(successor, id);
+		//return requestSender.findIdPredecessor(successor, id);
 		//System.out.println(this.id + ": Routed to node " + closestPreceedingFinger(id).getID());
-		//return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
+		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
 	
 	
@@ -342,10 +356,17 @@ public class Node {
 	}
 	
 	private String printFingerTable(NodeInfo[] fingers) {
-		String res = "Fingers: <br>";
-		for (NodeInfo n : fingers) {
-			if(n != null) {res += n.getID() + "<br>";}
+		String res = "<br><h3>Fingers: </h3>";
+		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> </tr>";
+		int nextFingerID = 0;
+		for (int i = 0; i < fingers.length; i++) {
+			if(fingers[i] != null) {
+				nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
+				
+				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> </tr>";
+			}
 		}
+		res += "</table>";
 		return res;
 	}
 }
