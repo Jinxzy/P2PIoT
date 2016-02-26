@@ -6,6 +6,10 @@ import milestone2.chord.Key;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,11 +36,16 @@ public class Node {
 	private NodeServer nodeServer;
 	private Timer timer;
 	private int updateTime;
+	private JSONObject photon;
+	private boolean isPhotonActive;
+	private int photonId;
 
 	public Node(String ip, int port) {
 		this.ip = ip;
 		this.port = port;
 		updateTime = 30;
+		photon = new JSONObject();
+		isPhotonActive = false;
 		nodeServer = new NodeServer(port);
 		id = Key.generate16BitsKey(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
@@ -54,12 +63,10 @@ public class Node {
 		}
 		
 		System.out.println("New network created");
-		
-		String temp = "Test";
-		temp = requestSender.findSpark(0);
-		System.out.println("Spark returned: " + temp);
 		listenToRequests();
 	}
+	
+	
 
 	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
 
@@ -108,6 +115,50 @@ public class Node {
 			
 		}
 	}
+	
+	public void printPhotonInfo() {
+		System.out.println(photon.toString());
+	}
+	
+	//Finds the responsible node for the photon and updates it and the successor of it
+	public void findResponsibleNode() {
+		String photonJson = requestSender.findSpark();
+		try {
+			JSONObject temp = new JSONObject(photonJson);
+			JSONObject temp2 = temp.getJSONObject("coreInfo");
+			String deviceID = temp2.getString("deviceID");
+			int convertedID = Key.generate16BitsKey(deviceID);
+			NodeInfo responsible = findSuccessor(convertedID);
+			NodeInfo resposibleSuccessor = requestSender.getNodeSuccessor(responsible);
+			requestSender.updatePhoton(responsible);
+			requestSender.updatePhoton(resposibleSuccessor);
+			System.out.println("PhotonID: " + convertedID);
+			System.out.println("Responsible is:\n" + responsible.getID() + "\n" + resposibleSuccessor.getID());
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	//Updates the photon of this node
+	@PUT
+	@Path("/update-photon/")
+	public Response updatePhoton(NodeInfo target) {
+		String photonJson = requestSender.findSpark();
+		try {
+			photon = new JSONObject(photonJson);
+			JSONObject coreInfo = photon.getJSONObject("coreInfo");
+			String deviceID = coreInfo.getString("deviceID");
+			photonId = Key.generate16BitsKey(deviceID);
+			System.out.println("deviceID returned: " + deviceID);
+			System.out.println("deviceID int returned: " + photonId);
+			isPhotonActive = true;
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Spark returned:\n" + photonJson);
+		return Response.status(200).entity(photon).build();	
+	}
+	
 	
 	@PUT
 	@Path("/update/{param}")
@@ -305,20 +356,37 @@ public class Node {
 	}
 	
 	@GET
+	@Path("/photon")
+	@Produces(MediaType.TEXT_HTML)
+	public String showPhoton() {
+		String res = "";
+		res += "<html>"
+				+ "<body>"
+				+ "Photon:\n" + photon
+				+ "</body>"
+				+ "</html>";
+		return res;
+	}
+	
+	@GET
 	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String showHTML() {
 		String res = "";
-		
 		res += "<html>"
 				+ "<body>"
 				+ "This node: " + buildNodeLink(thisNode)
 				+ "Successor: " + buildNodeLink(successor)
-				+ "Predecessor: " + buildNodeLink(predecessor)
-				+ printFingerTable(fingers)
+				+ "Predecessor: " + buildNodeLink(predecessor);
+		if (isPhotonActive) {
+			res += "Photon: " + "<a href=" + "http://" + ip + ":" + port + "/photon" + ">" + "http://" + ip + ":" + port + "</a> " + photonId  + "<br>";
+		} else {
+			res += "Photon isn't active on this node";
+		}
+		
+		res += 	printFingerTable(fingers)
 				+ "</body>"
 				+ "</html>";
-		
 		return res;
 	}
 	

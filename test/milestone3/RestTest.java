@@ -7,7 +7,7 @@ import milestone3.Node;
 
 public class RestTest {
 	public static void main(String[] args) {
-		int num_nodes = 10, multiplier = 2, bootstrap_port = 49960;
+		int num_nodes = 5, multiplier = 2, bootstrap_port = 49960;
 		String bootstrap_host = "localhost";
 
 
@@ -20,6 +20,14 @@ public class RestTest {
 			int port = bootstrap_port + i;
 			nodes[i] = new Node(bootstrap_host, port);
 			nodes[i].join(root.getIp(), root.getPort());
+		}
+		root.findResponsibleNode();
+		
+		for(int i = 0; i < num_nodes; i++) {
+			System.out.println("-----------------------");
+			System.out.println("NodeID: " + nodes[i].getID());
+			nodes[i].printPhotonInfo();
+			System.out.println("-----------------------");
 		}
 	}
 }
