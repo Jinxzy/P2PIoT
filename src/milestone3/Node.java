@@ -11,9 +11,7 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -152,6 +150,7 @@ public class Node {
 			System.out.println("deviceID returned: " + deviceID);
 			System.out.println("deviceID int returned: " + photonId);
 			isPhotonActive = true;
+			createPhotonUpdateTimer();
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -159,7 +158,28 @@ public class Node {
 		return Response.status(200).entity(photon).build();	
 	}
 	
+	public void refreshPhotonInfo() {
+		if(isPhotonActive) {
+			System.out.println(this.port + ": Updating photon");
+			String photonJson = requestSender.findSpark();
+			try {
+				photon = new JSONObject(photonJson);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	
+	public void createPhotonUpdateTimer() {
+		timer = new Timer();
+		timer.schedule( new TimerTask() {
+			public void run() {
+				refreshPhotonInfo();
+			}
+		}, 0, 2000);
+	}
+	
+	//Updates the finger table with the {param} ID node as potential finger
 	@PUT
 	@Path("/update/{param}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -171,17 +191,6 @@ public class Node {
 		}
 		
 		return Response.status(200).entity(n).build();
-	}
-	
-	//Creates a timer that updates the figners UpdateTime in secs. 
-	public void createTimerUpdateFingers() {
-		timer = new Timer();
-
-		timer.schedule( new TimerTask() {
-			public void run() {
-				initFingerTable(ip, port);
-			}
-		}, 0, updateTime * 1000);
 	}
 	
 	//Checks the predecessor every UpdateTime in secs.
@@ -252,7 +261,6 @@ public class Node {
 		//Checks if the id searched for is greater/equal to this nodes ID, and smaller/equal than successors nodes ID, in which case this node should be returned
 		//if(id >= this.id && id < successorID()).
 		if( this.id < id &&  successor.getID() >= id){
-			System.out.println(this.id + ": Routing done");
 			return thisNode;
 		}
 		//Check if successor is smaller than this node ID, and if searched ID is in between. If so we're crossing the '0' line, and this node is predecessor
@@ -260,20 +268,15 @@ public class Node {
 		  //if(id > this.id || id < succID
 		else if( successor.getID() < this.id ) { // we are the highest id in the hood
 			if (this.id < id || successor.getID() >= id) {
-				System.out.println(this.id + ": Routing done");
 				return thisNode;
 			}
 		}
 		//Special case, only this node in network
 		else if(successor.getID() == this.id) {
-			System.out.println(this.id + ": Routing done");
 			return thisNode;
 		}
 		
-		//Using closesPreceedingFinger doesn't work atm. I suspect we just need to update finger tables
-		//Immediately upon new joining node
-		
-		System.out.println(this.id + ": Routed to node " + successor.getID());
+		//System.out.println(this.id + ": Routed to node " + successor.getID());
 		//return requestSender.findIdPredecessor(successor, id);
 		//System.out.println(this.id + ": Routed to node " + closestPreceedingFinger(id).getID());
 		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
@@ -375,11 +378,16 @@ public class Node {
 		String res = "";
 		res += "<html>"
 				+ "<body>"
-				+ "This node: " + buildNodeLink(thisNode)
-				+ "Successor: " + buildNodeLink(successor)
-				+ "Predecessor: " + buildNodeLink(predecessor);
+				+ "This node: " + buildNodeLink(thisNode) + " </a> " + thisNode.getID() + "<br>" 
+				+ "Successor: " + buildNodeLink(successor) + " </a> " + successor.getID() + "<br>" 
+				+ "Predecessor: " + buildNodeLink(predecessor) + " </a> " + predecessor.getID() + "<br>";
 		if (isPhotonActive) {
 			res += "Photon: " + "<a href=" + "http://" + ip + ":" + port + "/photon" + ">" + "http://" + ip + ":" + port + "</a> " + photonId  + "<br>";
+			try {
+				res += "Photon light level: " + photon.getInt("result");
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		} else {
 			res += "Photon isn't active on this node";
 		}
@@ -424,18 +432,18 @@ public class Node {
 	private String buildNodeLink(NodeInfo n) {
 		if (n == null) {return null;}
 		String linkAddr = "http://" + n.getIP() + ":" + n.getPort() + "/index";
-		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort() + "</a> " + n.getID()  + "<br>";
+		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort();
 	}
 	
 	private String printFingerTable(NodeInfo[] fingers) {
 		String res = "<br><h3>Fingers: </h3>";
-		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> </tr>";
+		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> <th>URL</th> </tr>";
 		int nextFingerID = 0;
 		for (int i = 0; i < fingers.length; i++) {
 			if(fingers[i] != null) {
 				nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
 				
-				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> </tr>";
+				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> <td>" + buildNodeLink(fingers[i]) + "</td> </tr>";
 			}
 		}
 		res += "</table>";
