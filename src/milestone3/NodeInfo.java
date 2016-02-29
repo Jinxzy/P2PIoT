@@ -1,5 +1,4 @@
 package milestone3;
-
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
@@ -34,7 +33,27 @@ public class NodeInfo {
 	public int getID() {
 		return id;
 	}
-	
+
+	@JsonProperty("link")
+	public String getLink() {
+		return "http://" + ip + ":" + port + "/";
+	}
+
+	@JsonProperty("index")
+	public String getIndex() {
+		return "http://" + ip + ":" + port + "/index";
+	}
+
+	@JsonProperty("repr")
+	public String getRepresentation() {
+		return "http://" + ip + ":" + port + "/" + id;
+	}
+
+	public int generateFingerId(int index){
+		return (id + (int) Math.pow(2, index)) % (int) Math.pow(2, 16);
+	}
+
+
 	@JsonIgnore
 	public void setIP(String ip) {
 		this.ip = ip;

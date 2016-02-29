@@ -1,20 +1,22 @@
 package milestone3;
 
 import com.sun.net.httpserver.HttpServer;
+import freemarker.core.ParseException;
+import freemarker.template.*;
 import milestone2.chord.Key;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import milestone3.views.HtmlParser;
+import milestone3.views.HtmlParser.Templates;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
+
+import java.io.*;
+import java.util.*;
 
 
 @SuppressWarnings("restriction")
@@ -37,6 +39,8 @@ public class Node {
 	private JSONObject photon;
 	private boolean isPhotonActive;
 	private int photonId;
+	private HtmlParser parser;
+
 
 	public Node(String ip, int port) {
 		this.ip = ip;
@@ -49,6 +53,8 @@ public class Node {
 		thisNode = new NodeInfo(ip, port, id);
 		requestSender = new RequestSender(thisNode);
 		fingers = new NodeInfo[16];
+		parser  = new HtmlParser();
+
 	}
 
 	public void join() { //No known node, this node starts new network with just this node in it
@@ -448,5 +454,27 @@ public class Node {
 		}
 		res += "</table>";
 		return res;
+	}
+
+	@GET
+	@Path("/index2")
+	@Produces(MediaType.TEXT_HTML)
+	public String foo() {
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put("node", thisNode);
+		data.put("predecessor", predecessor);
+		data.put("successor", successor);
+		data.put("fingers", fingers);
+
+		if(isPhotonActive){
+			Map<String, Object> photon_map = new HashMap<String, Object>();
+			photon_map.put("id", photonId);
+			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
+			photon_map.put("data", photon);
+
+			data.put("photon", photon_map);
+		}
+
+		return  parser.parse(Templates.INDEX, data);
 	}
 }
