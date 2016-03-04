@@ -134,7 +134,7 @@ public class RequestSender {
 		Builder ib = resource.request(MediaType.APPLICATION_JSON);
 		Response res = ib.put(Entity.entity(n, MediaType.APPLICATION_JSON));
 	}
-	
+
 	public String findSpark()
 	{
 		resource = client.target("https://api.spark.io/v1/devices/2b0023000247343138333038/analogvalue?access_token=c2f1f7a26afd51a45e7ad921058164cbf08d1708");

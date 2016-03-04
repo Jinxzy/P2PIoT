@@ -39,6 +39,11 @@ public class NodeInfo {
 		return "http://" + ip + ":" + port + "/";
 	}
 
+	@JsonProperty("kill")
+	public String getKill() {
+		return "http://" + ip + ":" + port + "/kill";
+	}
+
 	@JsonProperty("index")
 	public String getIndex() {
 		return "http://" + ip + ":" + port + "/index";

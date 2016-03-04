@@ -1,16 +1,21 @@
 package milestone4;
 
 import com.sun.net.httpserver.HttpServer;
+
 import milestone2.chord.Key;
 import milestone4.views.HtmlParser.Templates;
 import milestone4.views.HtmlParser;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
+
+
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -33,7 +38,9 @@ public class Node {
 	private int port;
 	private NodeServer nodeServer;
 	private Timer timer;
+	private Timer shutdownTimer;
 	private int updateTime;
+	private int updatePhotonTime  = 5000;
 	private JSONObject photon;
 	private boolean isPhotonActive;
 	private int photonId;
@@ -52,6 +59,7 @@ public class Node {
 		requestSender = new RequestSender(thisNode);
 		fingers = new NodeInfo[16];
 		parser  = new HtmlParser();
+		timer = new Timer();
 
 	}
 
@@ -200,8 +208,6 @@ public class Node {
 
 	//Checks the predecessor every UpdateTime in secs.
 	public void createTimerCheckPredecessor() {
-		timer = new Timer();
-
 		timer.schedule( new TimerTask() {
 			public void run() {
 				NodeInfo n = requestSender.getNodePredecessor(thisNode);
@@ -232,11 +238,28 @@ public class Node {
 		}
 	}
 
-	public void leave() {
+	@POST
+	@Path("/kill")
+	public Response  leave() {
 		requestSender.updateNodeSuccessor(predecessor, successor);
 		requestSender.updateNodePredecessor(successor, predecessor);
 		timer.cancel();
-		System.out.println(this.port + ": left network");
+		killCommuncations();
+		return Response.status(200).build();
+	}
+
+	public void killCommuncations() {
+		shutdownTimer = new Timer();
+		shutdownTimer.
+				schedule( new TimerTask() {
+			public void run() {
+				System.out.println(thisNode.getPort() + ": left network");
+				System.out.println(thisNode.getPort() + ": Stops listening");
+				stopListening();
+
+				//shutdownTimer.cancel();
+			}
+		}, 500);
 	}
 
 	@GET
@@ -377,33 +400,6 @@ public class Node {
 	}
 
 	@GET
-	@Path("/index")
-	@Produces(MediaType.TEXT_HTML)
-	public String showHTML() {
-		String res = "";
-		res += "<html>"
-				+ "<body>"
-				+ "This node: " + buildNodeLink(thisNode) + " </a> " + thisNode.getID() + "<br>"
-				+ "Successor: " + buildNodeLink(successor) + " </a> " + successor.getID() + "<br>"
-				+ "Predecessor: " + buildNodeLink(predecessor) + " </a> " + predecessor.getID() + "<br>";
-		if (isPhotonActive) {
-			res += "Photon: " + "<a href=" + "http://" + ip + ":" + port + "/photon" + ">" + "http://" + ip + ":" + port + "</a> " + photonId  + "<br>";
-			try {
-				res += "Photon light level: " + photon.getInt("result");
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		} else {
-			res += "Photon isn't active on this node";
-		}
-
-		res += 	printFingerTable(fingers)
-				+ "</body>"
-				+ "</html>";
-		return res;
-	}
-
-	@GET
 	@Path("/successor-of/{param}")
 	@Produces(MediaType.TEXT_HTML)
 	public String showSuccesorOf(@PathParam("param") int id) {
@@ -439,7 +435,7 @@ public class Node {
 		String linkAddr = "http://" + n.getIP() + ":" + n.getPort() + "/index";
 		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort();
 	}
-	
+
 	private String printFingerTable(NodeInfo[] fingers) {
 		String res = "<br><h3>Fingers: </h3>";
 		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> <th>URL</th> </tr>";
@@ -447,7 +443,7 @@ public class Node {
 		for (int i = 0; i < fingers.length; i++) {
 			if(fingers[i] != null) {
 				nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
-				
+
 				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> <td>" + buildNodeLink(fingers[i]) + "</td> </tr>";
 			}
 		}
@@ -456,7 +452,7 @@ public class Node {
 	}
 
 	@GET
-	@Path("/index2")
+	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String foo() {
 		Map<String, Object> data = new HashMap<String, Object>();

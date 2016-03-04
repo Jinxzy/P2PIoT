@@ -15,6 +15,9 @@
     <!-- Custom styles for this template -->
     <link href="http://getbootstrap.com/examples/dashboard/dashboard.css" rel="stylesheet">
 
+    <!-- JQuery -->
+    <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
 
@@ -34,11 +37,11 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="${node.index}">P2P / IoT - Charlie</a>
+                <div class="navbar-brand">P2P / IoT - Charlie</div>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="${node.index}">#${node.ID}</a></li>
+                    <li><a id="kill-node" data-follow="${successor.index}" data-kill="${node.kill}" href="#">Leave the network</a></li>
                 </ul>
                 <form class="navbar-form navbar-right">
                     <input type="text" class="form-control" placeholder="Search... NOT IMPLEMENTED">
@@ -109,6 +112,15 @@
             </div>
         </div>
     </div>
-
+<script>
+    $("#kill-node").bind('click', function(){
+        url = $(this).data('kill');
+        redirect = $(this).data('follow');
+        $.post(url, function(){
+            document.location.href = redirect;
+        });
+        return false;
+    });
+</script>
 </body>
 </html>
