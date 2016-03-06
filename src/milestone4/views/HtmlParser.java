@@ -22,6 +22,11 @@ public class HtmlParser {
             public String toString() {
                 return "index.ftl";
             }
+        },
+        PHOTON {
+            public String toString() {
+                return "photon.ftl";
+            }
         }
 
     }

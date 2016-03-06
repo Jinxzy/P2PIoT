@@ -387,7 +387,7 @@ public class Node {
 	}
 
 	@GET
-	@Path("/photon")
+	@Path("/photon2")
 	@Produces(MediaType.TEXT_HTML)
 	public String showPhoton() {
 		String res = "";
@@ -417,59 +417,40 @@ public class Node {
 		//return standardJsonToHtml(n);
 	}
 
-	private String standardJsonToHtml(NodeInfo n) {
-		String res = "";
-		res += "<html>"
-				+ "<body>"
-				+ "This node information: <br>"
-				+ "ID: " + n.getID() + "<br>"
-				+ "IP: " + n.getIP() + "<br>"
-				+ "Port: " + n.getPort() + "<br>"
-				+ "</body>"
-				+ "</html>";
-		return res;
-	}
 
-	private String buildNodeLink(NodeInfo n) {
-		if (n == null) {return null;}
-		String linkAddr = "http://" + n.getIP() + ":" + n.getPort() + "/index";
-		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort();
-	}
-
-	private String printFingerTable(NodeInfo[] fingers) {
-		String res = "<br><h3>Fingers: </h3>";
-		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> <th>URL</th> </tr>";
-		int nextFingerID = 0;
-		for (int i = 0; i < fingers.length; i++) {
-			if(fingers[i] != null) {
-				nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
-
-				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> <td>" + buildNodeLink(fingers[i]) + "</td> </tr>";
-			}
+	public void loadCommonContext(Map<String, Object> context){
+		context.put("node", thisNode);
+		context.put("predecessor", predecessor);
+		context.put("successor", successor);
+		context.put("enable_leave_network", true);
+		if(isPhotonActive){
+			Map<String, Object> photon_map = new HashMap<String, Object>();
+			photon_map.put("id", photonId);
+			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
+			photon_map.put("data", photon);
+			context.put("photon", photon_map);
 		}
-		res += "</table>";
-		return res;
 	}
 
 	@GET
 	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String foo() {
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("node", thisNode);
-		data.put("predecessor", predecessor);
-		data.put("successor", successor);
-		data.put("fingers", fingers);
+		Map<String, Object> context = new HashMap<String, Object>();
+		loadCommonContext(context);
+		context.put("fingers", fingers);
 
-		if(isPhotonActive){
-			Map<String, Object> photon_map = new HashMap<String, Object>();
-			photon_map.put("id", photonId);
-			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
-			photon_map.put("data", photon);
 
-			data.put("photon", photon_map);
-		}
+		return  parser.parse(Templates.INDEX, context);
+	}
 
-		return  parser.parse(Templates.INDEX, data);
+	@GET
+	@Path("/photon")
+	@Produces(MediaType.TEXT_HTML)
+	public String foo2() {
+		Map<String, Object> context = new HashMap<String, Object>();
+		loadCommonContext(context);
+
+		return  parser.parse(Templates.PHOTON, context);
 	}
 }
