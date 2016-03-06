@@ -3,6 +3,7 @@ package milestone4;
 import com.sun.net.httpserver.HttpServer;
 
 import milestone2.chord.Key;
+import milestone4.model.Photon;
 import milestone4.views.HtmlParser.Templates;
 import milestone4.views.HtmlParser;
 import org.codehaus.jettison.json.JSONException;
@@ -41,9 +42,10 @@ public class Node {
 	private Timer shutdownTimer;
 	private int updateTime;
 	private int updatePhotonTime  = 5000;
-	private JSONObject photon;
-	private boolean isPhotonActive;
-	private int photonId;
+	private Photon _photon;
+	//private JSONObject photon;
+	//private boolean isPhotonActive;
+	//private int photonId;
 	private HtmlParser parser;
 
 
@@ -51,8 +53,11 @@ public class Node {
 		this.ip = ip;
 		this.port = port;
 		updateTime = 30;
-		photon = new JSONObject();
-		isPhotonActive = false;
+		_photon = new Photon();
+
+		//photon = new JSONObject();
+		//isPhotonActive = false;
+
 		nodeServer = new NodeServer(port);
 		id = Key.generate16BitsKey(ip, port);
 		thisNode = new NodeInfo(ip, port, id);
@@ -128,7 +133,7 @@ public class Node {
 	}
 
 	public void printPhotonInfo() {
-		System.out.println(photon.toString());
+		System.out.println(_photon.json().toString());
 	}
 
 	//Finds the responsible node for the photon and updates it and the successor of it
@@ -155,31 +160,20 @@ public class Node {
 	@Path("/update-photon/")
 	public Response updatePhoton(NodeInfo target) {
 		String photonJson = requestSender.findSpark();
-		try {
-			photon = new JSONObject(photonJson);
-			JSONObject coreInfo = photon.getJSONObject("coreInfo");
-			String deviceID = coreInfo.getString("deviceID");
-			photonId = Key.generate16BitsKey(deviceID);
-			System.out.println("deviceID returned: " + deviceID);
-			System.out.println("deviceID int returned: " + photonId);
-			isPhotonActive = true;
+		if(_photon.update(photonJson)){
 			createPhotonUpdateTimer();
-		} catch (JSONException e) {
-			e.printStackTrace();
 		}
+
+
 		System.out.println("Spark returned:\n" + photonJson);
-		return Response.status(200).entity(photon).build();
+		return Response.status(200).entity(_photon.json()).build();
 	}
 
 	public void refreshPhotonInfo() {
-		if(isPhotonActive) {
+		if(_photon.active()) {
 			System.out.println(this.port + ": Updating photon");
 			String photonJson = requestSender.findSpark();
-			try {
-				photon = new JSONObject(photonJson);
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
+			_photon.update(photonJson);
 		}
 	}
 
@@ -393,7 +387,7 @@ public class Node {
 		String res = "";
 		res += "<html>"
 				+ "<body>"
-				+ "Photon:\n" + photon
+				+ "Photon:\n" + _photon.json()
 				+ "</body>"
 				+ "</html>";
 		return res;
@@ -423,11 +417,11 @@ public class Node {
 		context.put("predecessor", predecessor);
 		context.put("successor", successor);
 		context.put("enable_leave_network", true);
-		if(isPhotonActive){
+		if(_photon.active()){
 			Map<String, Object> photon_map = new HashMap<String, Object>();
-			photon_map.put("id", photonId);
+			photon_map.put("id", _photon.getID());
 			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
-			photon_map.put("data", photon);
+			photon_map.put("data", _photon.json());
 			context.put("photon", photon_map);
 		}
 	}
