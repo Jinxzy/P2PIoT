@@ -76,6 +76,8 @@ public class Node {
 			fingers[i] = new NodeInfo(ip, port, id);
 		}
 
+		createTimerCheckPredecessor();
+		
 		System.out.println("New network created");
 		listenToRequests();
 	}
@@ -91,6 +93,8 @@ public class Node {
 		predecessor = requestSender.getNodePredecessor(successor);
 
 		takeResponsibilities();
+
+		createTimerCheckPredecessor();
 		
 		initFingerTable(ip, port);
 		listenToRequests();
@@ -270,6 +274,7 @@ public class Node {
 			public void run() {
 				NodeInfo n = requestSender.getNodePredecessor(thisNode);
 				if (n == null) {
+					takeResponsibilities();
 					predecessor = requestSender.findIdPredecessor(thisNode, thisNode.getID());
 				}
 			}
@@ -298,10 +303,14 @@ public class Node {
 
 	@POST
 	@Path("/kill")
-	public Response leave() {
+	public Response leave() {		
+		if (isPhotonActive) {
+			requestSender.updatePhoton(successor);
+		}
 		requestSender.updateNodeSuccessor(predecessor, successor);
 		requestSender.updateNodePredecessor(successor, predecessor);
 		timer.cancel();
+
 		killCommuncations();
 		return Response.status(200).build();
 	}
