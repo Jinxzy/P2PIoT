@@ -15,9 +15,11 @@
                 <li><a id="kill-node" data-follow="${successor.index}" data-kill="${node.kill}" href="#">Leave the network</a></li>
                 </#if>
             </ul>
+            <!--
             <form class="navbar-form navbar-right">
                 <input type="text" class="form-control" placeholder="Search... NOT IMPLEMENTED">
             </form>
+            -->
         </div>
     </div>
 </nav>

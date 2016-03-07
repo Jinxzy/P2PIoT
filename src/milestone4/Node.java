@@ -79,6 +79,7 @@ public class Node {
 		createTimerCheckPredecessor();
 		
 		System.out.println("New network created");
+		System.out.println("Check the node at status at " + thisNode.getIndex() );
 		listenToRequests();
 	}
 
@@ -103,6 +104,7 @@ public class Node {
 		//Update successors and predecessor with this node
 		updateOthers();
 		System.out.println("Join complete!");
+		System.out.println("Check the node at status at " + thisNode.getIndex() );
 	}
 
 	public void initFingerTable(String ip, int port) {
@@ -330,6 +332,7 @@ public class Node {
 	}
 
 	//Is this used at all?
+	//juan: I don't think so
 	@GET
 	@Path("/status")
 	@Produces(MediaType.APPLICATION_JSON)
