@@ -34,7 +34,7 @@ public class Node {
 	private HttpServer requestHandler;
 	private int id;
 	private NodeInfo[] fingers;
-	private List<PhotonData> photonData;
+	private ArrayList<PhotonData> photonData;
 	private NodeInfo[] succList;
 
 	private String ip;
@@ -86,19 +86,17 @@ public class Node {
 
 		//Initialize own successor/predecessors
 		successor = requestSender.findIdSuccessor(ip, port, thisNode.getID());
-		System.out.println(this.port + " found successor: " + successor.getPort());
 
 		//No ID needed for path
 		predecessor = requestSender.getNodePredecessor(successor);
-		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 
+		takeResponsibilities();
+		
 		initFingerTable(ip, port);
-
 		listenToRequests();
 		System.out.println(this.port + ": Listening");
 
 		//Update successors and predecessor with this node
-		System.out.println("Updating other peers");
 		updateOthers();
 		System.out.println("Join complete!");
 	}
@@ -148,6 +146,38 @@ public class Node {
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void takeResponsibilities() {
+		String responsible = requestSender.takePhotonResponsibility(successor, thisNode.getID());
+		
+		if (responsible.equals("true")) {
+			System.out.println("Becoming new responsible node");
+			photonData = requestSender.getPhotonData(successor).getList();
+			//photonData = ... //Should get the list of PhotonData from the successor
+			updatePhoton(thisNode); //Begin being the responsible node
+		}
+	}
+	
+	@GET
+	@Path("/getPhotonData")
+	public DataListWrapper getPhotonData() {
+		
+		DataListWrapper wrapper = new DataListWrapper();
+		wrapper.setList(photonData);
+		
+		return wrapper;
+	}
+	
+	@GET
+	@Path("/takePhotonResponsibility/{param}")
+	public String takePhotonResponsibility(@PathParam("param") int nodeID) {
+		if(isPhotonActive && (photonId < nodeID)) {
+			isPhotonActive = false;
+			timer.cancel();
+			return "true";
+		}
+		else return "false";
 	}
 
 	//Updates the photon of this node
@@ -201,7 +231,7 @@ public class Node {
 				
 				PhotonData data = new PhotonData(time, light);
 				photonData.add(data);
-				requestSender.sendPhotonData(successor, data);
+				//requestSender.sendPhotonData(successor, data);
 				
 				System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
