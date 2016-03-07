@@ -52,6 +52,39 @@ public class RequestSender {
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/predecessor-of/" + id);
 		return get(resource);
 	}
+	
+	public String takePhotonResponsibility(NodeInfo node, int nodeID) {
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/takePhotonResponsibility/" + nodeID);
+		return getString(resource);
+	}
+	
+	public DataListWrapper getPhotonData(NodeInfo node) {
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/getPhotonData");
+		return getList(resource);
+	}
+	
+	public DataListWrapper getList(WebTarget resource){
+		request = resource.request();
+		request.accept(MediaType.APPLICATION_JSON);
+		Response response = request.get();
+
+		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
+
+			String jsonRes = response.readEntity(String.class);
+			ObjectMapper mapper = new ObjectMapper();
+			DataListWrapper list = null;
+			try {
+				list = mapper.readValue(jsonRes, DataListWrapper.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return list;
+
+		} else {
+			System.out.println("Error requesting node! " + response.getStatus());
+			return null;
+		}
+	}
 
 	public NodeInfo get(WebTarget resource){
 		request = resource.request();
@@ -91,6 +124,7 @@ public class RequestSender {
 			return null;
 		}
 	}
+	
 
 	public void updateNodeSuccessor(NodeInfo node, NodeInfo successor){
 		client = ClientBuilder.newClient();
@@ -115,6 +149,14 @@ public class RequestSender {
 		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/update-photon/");
 		this.put(resource, target);
 	}
+	
+	public void sendPhotonData(NodeInfo target, PhotonData data) {
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/sendPhotonData");
+		this.post(resource, data);
+	}
+	
+	
 
 	public String displayIndexPage(NodeInfo node) {
 		client = ClientBuilder.newClient();
@@ -122,6 +164,12 @@ public class RequestSender {
 		return getString(resource);
 	}
 
+	public void post(WebTarget resource, PhotonData data)
+	{
+		Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Response res = ib.post(Entity.entity(data, MediaType.APPLICATION_JSON));
+		System.out.println(res.getStatus());
+	}
 
 	public void post(WebTarget resource, NodeInfo n)
 	{

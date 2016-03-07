@@ -15,8 +15,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import java.io.IOException;
-
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -33,6 +34,8 @@ public class Node {
 	private HttpServer requestHandler;
 	private int id;
 	private NodeInfo[] fingers;
+	private ArrayList<PhotonData> photonData;
+	private NodeInfo[] succList;
 
 	private String ip;
 	private int port;
@@ -60,7 +63,8 @@ public class Node {
 		fingers = new NodeInfo[16];
 		parser  = new HtmlParser();
 		timer = new Timer();
-
+		photonData = new ArrayList<PhotonData>();
+		succList = new NodeInfo[2];
 	}
 
 	public void join() { //No known node, this node starts new network with just this node in it
@@ -76,32 +80,26 @@ public class Node {
 		listenToRequests();
 	}
 
-
-
 	public void join(String ip, int port) { //n is existing known node to bootstrap into the network
 
 		System.out.println(this.port + ": Joining");
 
 		//Initialize own successor/predecessors
 		successor = requestSender.findIdSuccessor(ip, port, thisNode.getID());
-		System.out.println(this.port + " found successor: " + successor.getPort());
 
 		//No ID needed for path
 		predecessor = requestSender.getNodePredecessor(successor);
-		System.out.println(this.port + " found predecessor: " + predecessor.getPort());
 
+		takeResponsibilities();
+		
 		initFingerTable(ip, port);
-
 		listenToRequests();
 		System.out.println(this.port + ": Listening");
 
 		//Update successors and predecessor with this node
-		System.out.println("Updating other peers");
 		updateOthers();
 		System.out.println("Join complete!");
 	}
-
-
 
 	public void initFingerTable(String ip, int port) {
 		//Set first finger, which is just immediate successor
@@ -140,14 +138,46 @@ public class Node {
 			String deviceID = temp2.getString("deviceID");
 			int convertedID = Key.generate16BitsKey(deviceID);
 			NodeInfo responsible = findSuccessor(convertedID);
-			NodeInfo resposibleSuccessor = requestSender.getNodeSuccessor(responsible);
+			//NodeInfo resposibleSuccessor = requestSender.getNodeSuccessor(responsible);
 			requestSender.updatePhoton(responsible);
-			requestSender.updatePhoton(resposibleSuccessor);
+			//requestSender.updatePhoton(resposibleSuccessor);
 			System.out.println("PhotonID: " + convertedID);
-			System.out.println("Responsible is:\n" + responsible.getID() + "\n" + resposibleSuccessor.getID());
+			System.out.println("Responsible is:\n" + responsible.getID());
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void takeResponsibilities() {
+		String responsible = requestSender.takePhotonResponsibility(successor, thisNode.getID());
+		
+		if (responsible.equals("true")) {
+			System.out.println("Becoming new responsible node");
+			photonData = requestSender.getPhotonData(successor).getList();
+			//photonData = ... //Should get the list of PhotonData from the successor
+			updatePhoton(thisNode); //Begin being the responsible node
+		}
+	}
+	
+	@GET
+	@Path("/getPhotonData")
+	public DataListWrapper getPhotonData() {
+		
+		DataListWrapper wrapper = new DataListWrapper();
+		wrapper.setList(photonData);
+		
+		return wrapper;
+	}
+	
+	@GET
+	@Path("/takePhotonResponsibility/{param}")
+	public String takePhotonResponsibility(@PathParam("param") int nodeID) {
+		if(isPhotonActive && (photonId < nodeID)) {
+			isPhotonActive = false;
+			timer.cancel();
+			return "true";
+		}
+		else return "false";
 	}
 
 	//Updates the photon of this node
@@ -183,13 +213,41 @@ public class Node {
 		}
 	}
 
+	//Requests new photon result from cloud, and stores the result(light) + time in the PhotonData list
 	public void createPhotonUpdateTimer() {
 		timer = new Timer();
 		timer.schedule( new TimerTask() {
 			public void run() {
 				refreshPhotonInfo();
+				
+				String time = "";
+				int light = 0;
+				try {
+					time = photon.getJSONObject("coreInfo").getString("last_heard");
+					light = photon.getInt("result");
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+				
+				PhotonData data = new PhotonData(time, light);
+				photonData.add(data);
+				//requestSender.sendPhotonData(successor, data);
+				
+				System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
 		}, 0, 2000);
+	}
+	
+	//Receive data from node responsible for data, for replication purposes
+	@POST
+	@Path("/sendPhotonData")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response replicatePhotonData(PhotonData pd) {
+
+		photonData.add(pd);
+		System.out.println(thisNode.getPort() + ": " + photonData.toString());
+		
+		return Response.status(200).entity(pd).build();
 	}
 
 	//Updates the finger table with the {param} ID node as potential finger
@@ -240,7 +298,7 @@ public class Node {
 
 	@POST
 	@Path("/kill")
-	public Response  leave() {
+	public Response leave() {
 		requestSender.updateNodeSuccessor(predecessor, successor);
 		requestSender.updateNodePredecessor(successor, predecessor);
 		timer.cancel();
@@ -262,6 +320,7 @@ public class Node {
 		}, 500);
 	}
 
+	//Is this used at all?
 	@GET
 	@Path("/status")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -309,7 +368,6 @@ public class Node {
 		//System.out.println(this.id + ": Routed to node " + closestPreceedingFinger(id).getID());
 		return requestSender.findIdPredecessor(closestPreceedingFinger(id), id);
 	}
-
 
 	public NodeInfo closestPreceedingFinger(int id) {
 		for(int i=15; i>=0; i--) {
