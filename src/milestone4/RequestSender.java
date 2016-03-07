@@ -115,6 +115,12 @@ public class RequestSender {
 		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/update-photon/");
 		this.put(resource, target);
 	}
+	
+	public void sendPhotonData(NodeInfo target, PhotonData data) {
+		client = ClientBuilder.newClient();
+		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/sendPhotonData");
+		this.post(resource, data);
+	}
 
 	public String displayIndexPage(NodeInfo node) {
 		client = ClientBuilder.newClient();
@@ -122,6 +128,12 @@ public class RequestSender {
 		return getString(resource);
 	}
 
+	public void post(WebTarget resource, PhotonData data)
+	{
+		Builder ib = resource.request(MediaType.APPLICATION_JSON);
+		Response res = ib.post(Entity.entity(data, MediaType.APPLICATION_JSON));
+		System.out.println(res.getStatus());
+	}
 
 	public void post(WebTarget resource, NodeInfo n)
 	{
