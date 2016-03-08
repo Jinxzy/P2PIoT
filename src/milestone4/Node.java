@@ -77,7 +77,7 @@ public class Node {
 			fingers[i] = new NodeInfo(ip, port, id);
 		}
 
-		createTimerCheckPredecessor();
+		//createTimerCheckPredecessor();
 		
 		System.out.println("New network created");
 		System.out.println("Check the node at status at " + thisNode.getIndex() );
@@ -96,7 +96,7 @@ public class Node {
 
 		takeResponsibilities();
 
-		createTimerCheckPredecessor();
+		//createTimerCheckPredecessor();
 		
 		initFingerTable(ip, port);
 		listenToRequests();
@@ -161,7 +161,6 @@ public class Node {
 		if (responsible.equals("true")) {
 			System.out.println("Becoming new responsible node");
 			photonData = requestSender.getPhotonData(successor).getList();
-			//photonData = ... //Should get the list of PhotonData from the successor
 			updatePhoton(thisNode); //Begin being the responsible node
 		}
 	}
@@ -238,9 +237,12 @@ public class Node {
 				
 				PhotonData data = new PhotonData(time, light);
 				photonData.add(data);
-				//requestSender.sendPhotonData(successor, data);
 				
-				System.out.println(thisNode.getPort() + ": " + photonData.toString());
+				if(successor.getID() != thisNode.getID()) {
+					requestSender.sendPhotonData(successor, data);
+				}
+				
+				//System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
 		}, 0, updatePhotonTime);
 	}
@@ -251,11 +253,29 @@ public class Node {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response replicatePhotonData(PhotonData pd) {
 
-		photonData.add(pd);
-		System.out.println(thisNode.getPort() + ": " + photonData.toString());
+		if(photonData.isEmpty()) {
+			photonData = requestSender.getPhotonData(predecessor).getList();
+		}
+		
+		else {
+			photonData.add(pd);
+		}
+		//System.out.println(thisNode.getPort() + ": " + photonData.toString());
 		
 		return Response.status(200).entity(pd).build();
 	}
+	
+	@GET
+	@Path("/photonData")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String showPhotonData() {
+		String res = "";
+		for(PhotonData pd : photonData) {
+			res += pd.toString();
+		}
+		return res;
+	}
+	
 
 	//Updates the finger table with the {param} ID node as potential finger
 	@PUT
@@ -330,19 +350,6 @@ public class Node {
 				//shutdownTimer.cancel();
 			}
 		}, 500);
-	}
-
-	//Is this used at all?
-	//juan: I don't think so
-	@GET
-	@Path("/status")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Map<String, NodeInfo> status() { // return the node info
-		Map<String, NodeInfo> data = new HashMap<String, NodeInfo>();
-		data.put("node", thisNode);
-		data.put("predecessor", this.predecessor);
-		data.put("successor", this.successor);
-		return data;
 	}
 
 	@GET
