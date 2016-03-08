@@ -24,14 +24,16 @@
                 height = 500 - margin.top - margin.bottom;
         //var parseDate = d3.time.format("%Y-%m-%d").parse;
         var x = d3.time.scale()
-                .range([0, width])
+                .range([0, width]);
         var y = d3.scale.linear()
                 .range([height, 0]);
         var xAxis = d3.svg.axis()
                 .scale(x)
+                .ticks(10)
                 .orient("bottom");
         var yAxis = d3.svg.axis()
                 .scale(y)
+                .ticks(10)
                 .orient("left");
         var line = d3.svg.line()
                 .x(function(d) { return x(d.date); })
