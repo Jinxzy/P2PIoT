@@ -36,6 +36,9 @@
                 <#if photon??>
                     <h2 class="sub-header">Photon data</h2>
                     <#include "include/chart.ftl">
+                <#elseif photon_data??>
+                    <h2 class="sub-header">Photon replicated data</h2>
+                    <#include "include/chart.ftl">
                 </#if>
 
                 <h2 class="sub-header">Fingers Table</h2>

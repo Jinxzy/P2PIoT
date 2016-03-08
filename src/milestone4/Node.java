@@ -500,7 +500,7 @@ public class Node {
 			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
 			photon_map.put("data", photon);
 			context.put("photon", photon_map);
-		}
+		}else if(photonData.size() > 0)context.put("photon_data", true);
 	}
 
 	@GET
