@@ -30,6 +30,14 @@
                             <div class="text-muted">Current light level: ${photon.data.result}</div>
                             <div class="text-muted">k: ${photon.replicas}</div>
                         </div>
+                        <div class="col-xs-6 col-sm-3 placeholder">
+                            <form role="form">
+                                <div class="form-group">
+                                    <h4 class="">Photon Light</h4>
+                                    <input type="checkbox" name="light">
+                                </div>
+                            </form>
+                        </div>
 
                     </#if>
 
@@ -68,7 +76,42 @@
             </div>
         </div>
     </div>
+
+    <script src="http://www.bootstrap-switch.org/dist/js/bootstrap-switch.js"></script>
     <script>
+
+        // infering the current state of the led
+
+        (function inferState(){
+            $.get("/photon/light-data-last/1")
+                    .done(function( data ) {
+                        // guess the led is on
+                        if(data['light'] > 100){
+                            console.log('led status is on')
+                            $("input[name='light']").attr('checked', true)
+                        }else console.log('led status is off')
+
+                        $("input[name='light']").bootstrapSwitch();
+
+
+                        $('input[name="light"]').on('switchChange.bootstrapSwitch', function(event, state) {
+                            // state true or false
+                            var value = state?'on':'off';
+                            var url = 'https://api.particle.io/v1/devices/2b0023000247343138333038/led?access_token=c2f1f7a26afd51a45e7ad921058164cbf08d1708'
+                            $.post(url, {'args':value})
+                                    .done(function( data ) {
+                                        console.log(data)
+                                    });
+                        });
+
+
+                    });
+        })()
+
+
+
+
+
         $("#kill-node").bind('click', function(){
             url = $(this).data('kill');
             redirect = $(this).data('follow');

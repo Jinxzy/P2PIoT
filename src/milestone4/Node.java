@@ -68,7 +68,7 @@ public class Node {
 		timer = new Timer();
 		photonData = new ArrayList<PhotonData>();
 		succList = new NodeInfo[2];
-		replicas = 2;
+		replicas = 3;
 		replicatedValue = 0;
 
 	}
@@ -266,8 +266,8 @@ public class Node {
 		else {
 			photonData.add(pd);
 		}
-		replicatedValue = pd.replica;
-		if((pd.replica--) != 0){
+		replicatedValue = pd.replica--;
+		if(pd.replica > 0){
 
 			if(successor.getID() != thisNode.getID()) {
 				requestSender.sendPhotonData(successor, pd);
@@ -555,6 +555,7 @@ public class Node {
 	public String light() {
 		return light2(photonData.size());
 	}
+
 
 	@GET
 	@Path("/photon/light-data-last/{param}")

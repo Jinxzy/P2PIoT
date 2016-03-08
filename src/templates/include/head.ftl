@@ -11,6 +11,7 @@
 
 <!-- Custom styles for this template -->
 <link href="http://getbootstrap.com/examples/dashboard/dashboard.css" rel="stylesheet">
+<link href="http://www.bootstrap-switch.org/dist/css/bootstrap3/bootstrap-switch.css" rel="stylesheet">
 
 <!-- JQuery -->
 <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
