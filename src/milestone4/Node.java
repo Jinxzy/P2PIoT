@@ -242,7 +242,7 @@ public class Node {
 					requestSender.sendPhotonData(successor, data);
 				}
 				
-				System.out.println(thisNode.getPort() + ": " + photonData.toString());
+				//System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
 		}, 0, updatePhotonTime);
 	}
@@ -253,8 +253,14 @@ public class Node {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response replicatePhotonData(PhotonData pd) {
 
-		photonData.add(pd);
-		System.out.println(thisNode.getPort() + ": " + photonData.toString());
+		if(photonData.isEmpty()) {
+			photonData = requestSender.getPhotonData(predecessor).getList();
+		}
+		
+		else {
+			photonData.add(pd);
+		}
+		//System.out.println(thisNode.getPort() + ": " + photonData.toString());
 		
 		return Response.status(200).entity(pd).build();
 	}
@@ -344,19 +350,6 @@ public class Node {
 				//shutdownTimer.cancel();
 			}
 		}, 500);
-	}
-
-	//Is this used at all?
-	//juan: I don't think so
-	@GET
-	@Path("/status")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Map<String, NodeInfo> status() { // return the node info
-		Map<String, NodeInfo> data = new HashMap<String, NodeInfo>();
-		data.put("node", thisNode);
-		data.put("predecessor", this.predecessor);
-		data.put("successor", this.successor);
-		return data;
 	}
 
 	@GET
