@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpServer;
 import milestone2.chord.Key;
 import milestone4.views.HtmlParser.Templates;
 import milestone4.views.HtmlParser;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -79,6 +80,7 @@ public class Node {
 		//createTimerCheckPredecessor();
 		
 		System.out.println("New network created");
+		System.out.println("Check the node at status at " + thisNode.getIndex() );
 		listenToRequests();
 	}
 
@@ -103,6 +105,7 @@ public class Node {
 		//Update successors and predecessor with this node
 		updateOthers();
 		System.out.println("Join complete!");
+		System.out.println("Check the node at status at " + thisNode.getIndex() );
 	}
 
 	public void initFingerTable(String ip, int port) {
@@ -241,7 +244,7 @@ public class Node {
 				
 				System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
-		}, 0, 5000);
+		}, 0, updatePhotonTime);
 	}
 	
 	//Receive data from node responsible for data, for replication purposes
@@ -344,6 +347,7 @@ public class Node {
 	}
 
 	//Is this used at all?
+	//juan: I don't think so
 	@GET
 	@Path("/status")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -468,7 +472,7 @@ public class Node {
 	}
 
 	@GET
-	@Path("/photon")
+	@Path("/photon2")
 	@Produces(MediaType.TEXT_HTML)
 	public String showPhoton() {
 		String res = "";
@@ -498,59 +502,67 @@ public class Node {
 		//return standardJsonToHtml(n);
 	}
 
-	private String standardJsonToHtml(NodeInfo n) {
-		String res = "";
-		res += "<html>"
-				+ "<body>"
-				+ "This node information: <br>"
-				+ "ID: " + n.getID() + "<br>"
-				+ "IP: " + n.getIP() + "<br>"
-				+ "Port: " + n.getPort() + "<br>"
-				+ "</body>"
-				+ "</html>";
-		return res;
-	}
 
-	private String buildNodeLink(NodeInfo n) {
-		if (n == null) {return null;}
-		String linkAddr = "http://" + n.getIP() + ":" + n.getPort() + "/index";
-		return "<a href=" + linkAddr + ">" + "http://" + n.getIP() + ":" + n.getPort();
-	}
-
-	private String printFingerTable(NodeInfo[] fingers) {
-		String res = "<br><h3>Fingers: </h3>";
-		res += "<table> <tr> <th>Id</th> <th>Belongs to</th> <th>URL</th> </tr>";
-		int nextFingerID = 0;
-		for (int i = 0; i < fingers.length; i++) {
-			if(fingers[i] != null) {
-				nextFingerID = (thisNode.getID() + (int) Math.pow(2, i)) % (int) Math.pow(2, 16);
-
-				res += "<tr> <td> " + nextFingerID + " </td> <td>" + fingers[i].getID() + "</td> <td>" + buildNodeLink(fingers[i]) + "</td> </tr>";
-			}
+	public void loadCommonContext(Map<String, Object> context){
+		context.put("node", thisNode);
+		context.put("predecessor", predecessor);
+		context.put("successor", successor);
+		context.put("enable_leave_network", true);
+		if(isPhotonActive){
+			Map<String, Object> photon_map = new HashMap<String, Object>();
+			photon_map.put("id", photonId);
+			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
+			photon_map.put("data", photon);
+			context.put("photon", photon_map);
 		}
-		res += "</table>";
-		return res;
 	}
 
 	@GET
 	@Path("/index")
 	@Produces(MediaType.TEXT_HTML)
 	public String foo() {
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.put("node", thisNode);
-		data.put("predecessor", predecessor);
-		data.put("successor", successor);
-		data.put("fingers", fingers);
+		Map<String, Object> context = new HashMap<String, Object>();
+		loadCommonContext(context);
+		context.put("fingers", fingers);
 
-		if(isPhotonActive){
-			Map<String, Object> photon_map = new HashMap<String, Object>();
-			photon_map.put("id", photonId);
-			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
-			photon_map.put("data", photon);
 
-			data.put("photon", photon_map);
+		return  parser.parse(Templates.INDEX, context);
+	}
+
+	@GET
+	@Path("/photon")
+	@Produces(MediaType.TEXT_HTML)
+	public String foo2() {
+		Map<String, Object> context = new HashMap<String, Object>();
+		loadCommonContext(context);
+
+		return  parser.parse(Templates.PHOTON, context);
+	}
+
+	@GET
+	@Path("/photon/light-data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light() {
+		return light2(photonData.size());
+	}
+
+	@GET
+	@Path("/photon/light-data-last/{param}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light2(@PathParam("param") int total) {
+		if (photonData.size() < total) total = photonData.size();
+		ArrayList<String> time = new ArrayList<String>();
+		ArrayList<Integer> light = new ArrayList<Integer>();
+
+		for(int i = 0; i < total; i++){
+			time.add(photonData.get(photonData.size() - total + i).getTime());
+			light.add(photonData.get(photonData.size() - total + i).getLight());
 		}
 
-		return  parser.parse(Templates.INDEX, data);
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("time", new JSONArray(time));
+		result.put("light", new JSONArray(light));
+		return new JSONObject(result).toString();
 	}
+
 }
