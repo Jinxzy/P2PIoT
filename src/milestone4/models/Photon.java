@@ -69,7 +69,7 @@ public class Photon {
      */
 	@JsonProperty("light_data")
 	public JSONObject getData(int total){
-		if(total > this.time.size()) total = time.size() - 1;
+		if(total > this.time.size()) total = time.size();
 
 		ArrayList<String> time = new ArrayList<String>();
 		ArrayList<Integer> light = new ArrayList<Integer>();

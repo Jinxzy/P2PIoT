@@ -49,6 +49,8 @@
                 .x(function(d) { return x(d.date); })
                 .y(function(d) { return y(d.close); });
 
+        //TODO fix this hack
+        $('#graph').html('')
         var svg = d3.select("#graph").append("svg")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
@@ -90,13 +92,31 @@
                 .attr("d", line);
     }
 
+
     $.getJSON("/photon/light-data-last/50", function(data){
         var addData = [];
         for(var i = 0; i< data['time'].length; i++){
-             addData.push([ new Date(data['time'][i]),  data['light'][i]]);
+            addData.push([ new Date(data['time'][i]),  data['light'][i]]);
         }
+
         doPlot(addData);
     });
+
+    setInterval(function(){
+
+        $.getJSON("/photon/light-data-last/50", function(data){
+            var addData = [];
+            for(var i = 0; i< data['time'].length; i++){
+                addData.push([ new Date(data['time'][i]),  data['light'][i]]);
+            }
+
+            doPlot(addData);
+        });
+
+
+
+    }, 10000);
+
 
 
 </script>

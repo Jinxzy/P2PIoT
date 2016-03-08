@@ -44,7 +44,7 @@ public class Node {
 	private Timer timer;
 	private Timer shutdownTimer;
 	private int updateTime;
-	private int updatePhotonTime  = 30000;
+	private int updatePhotonTime  = 5000;
 	private Photon photon;
 	//#private boolean isPhotonActive;
 	//#private int photonId;
