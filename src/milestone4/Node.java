@@ -44,7 +44,7 @@ public class Node {
 	private Timer timer;
 	private Timer shutdownTimer;
 	private int updateTime;
-	private int updatePhotonTime  = 5000;
+	private int updatePhotonTime  = 30000;
 	private Photon photon;
 	//#private boolean isPhotonActive;
 	//#private int photonId;
@@ -227,7 +227,7 @@ public class Node {
 				
 				System.out.println(thisNode.getPort() + ": " + photon.getLastData().toString());
 			}
-		}, 0, 2000);
+		}, 0, updatePhotonTime);
 	}
 
 	/*
@@ -509,5 +509,19 @@ public class Node {
 		loadCommonContext(context);
 
 		return  parser.parse(Templates.PHOTON, context);
+	}
+
+	@GET
+	@Path("/photon/light-data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light() {
+		return  photon.getData().toString();
+	}
+	@GET
+	@Path("/photon/light-data-last/{param}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light2(@PathParam("param") int total) {
+		System.out.println("retrieving last " + total);
+		return  photon.getData(total).toString();
 	}
 }

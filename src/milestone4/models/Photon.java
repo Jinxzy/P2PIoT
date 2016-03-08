@@ -3,6 +3,7 @@ package milestone4.models;
 import milestone2.chord.Key;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -56,8 +57,31 @@ public class Photon {
 	@JsonProperty("light_data")
 	public JSONObject getData(){
 		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("time", time);
-		result.put("light", light);
+		result.put("time", new JSONArray(time));
+		result.put("light", new JSONArray(light));
+		return new JSONObject(result);
+	}
+
+	/**
+	 * Returns the last x values
+	 * @param total
+	 * @return
+     */
+	@JsonProperty("light_data")
+	public JSONObject getData(int total){
+		if(total > this.time.size()) total = time.size() - 1;
+
+		ArrayList<String> time = new ArrayList<String>();
+		ArrayList<Integer> light = new ArrayList<Integer>();
+		System.out.println("Parsing " + total);
+		for(int i = 0; i < total; i++ ){
+			time.add(this.time.get(this.time.size() - total + i));
+			light.add(this.light.get(this.light.size() - total + i));
+		}
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("time", new JSONArray(time));
+		result.put("light", new JSONArray(light));
 		return new JSONObject(result);
 	}
 
