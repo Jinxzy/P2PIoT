@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpServer;
 import milestone2.chord.Key;
 import milestone4.views.HtmlParser.Templates;
 import milestone4.views.HtmlParser;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -241,7 +242,7 @@ public class Node {
 				
 				System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
-		}, 0, 2000);
+		}, 0, updatePhotonTime);
 	}
 	
 	//Receive data from node responsible for data, for replication purposes
@@ -523,4 +524,31 @@ public class Node {
 
 		return  parser.parse(Templates.PHOTON, context);
 	}
+
+	@GET
+	@Path("/photon/light-data")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light() {
+		return light2(photonData.size());
+	}
+
+	@GET
+	@Path("/photon/light-data-last/{param}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String light2(@PathParam("param") int total) {
+		if (photonData.size() < total) total = photonData.size();
+		ArrayList<String> time = new ArrayList<String>();
+		ArrayList<Integer> light = new ArrayList<Integer>();
+
+		for(int i = 0; i < total; i++){
+			time.add(photonData.get(photonData.size() - total + i).getTime());
+			light.add(photonData.get(photonData.size() - total + i).getLight());
+		}
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("time", new JSONArray(time));
+		result.put("light", new JSONArray(light));
+		return new JSONObject(result).toString();
+	}
+
 }
