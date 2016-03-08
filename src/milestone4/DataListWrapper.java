@@ -1,15 +1,17 @@
 package milestone4;
 
+import milestone4.models.Photon;
+
 import java.util.ArrayList;
 
 public class DataListWrapper {
-	private ArrayList<PhotonData> list;
+	private ArrayList<Photon> list;
 	
-	public ArrayList<PhotonData> getList() {
+	public ArrayList<Photon> getList() {
 	    return list;
 	}
 	
-	public void setList(ArrayList<PhotonData> list) {
+	public void setList(ArrayList<Photon> list) {
 	    this.list = list;
 	}   
 }

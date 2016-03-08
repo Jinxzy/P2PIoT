@@ -4,7 +4,7 @@ import milestone4.Node;
 
 public class RestTest {
 	public static void main(String[] args) throws InterruptedException {
-		int num_nodes = 5, multiplier = 2, bootstrap_port = 49960;
+		int num_nodes = 3, multiplier = 2, bootstrap_port = 30000;
 		String bootstrap_host = "localhost";
 
 

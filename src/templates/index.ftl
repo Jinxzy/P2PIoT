@@ -26,8 +26,8 @@
                     </div>
                     <#if photon??>
                         <div class="col-xs-6 col-sm-3 placeholder">
-                            <h4>Photon #${photon.id}</h4>
-                            <span class="text-muted">Light level: ${photon.data.result}</span>
+                            <h4>Photon #${photon.data.ID}</h4>
+                            <span class="text-muted">Light level: ${photon.data.description.result}</span>
                         </div>
 
                     </#if>

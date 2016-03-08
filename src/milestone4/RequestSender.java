@@ -1,6 +1,9 @@
 package milestone4;
 
+import milestone4.models.NodeInfo;
+import milestone4.models.Photon;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jettison.json.JSONObject;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -62,7 +65,30 @@ public class RequestSender {
 		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/getPhotonData");
 		return getList(resource);
 	}
-	
+
+	public Photon getPhoton(NodeInfo node) {
+		resource = client.target("http://" + node.getIP() + ":" + node.getPort() + "/getPhoton");
+		request = resource.request();
+		request.accept(MediaType.APPLICATION_JSON);
+		Response response = request.get();
+
+		if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
+			String jsonRes = response.readEntity(String.class);
+			ObjectMapper mapper = new ObjectMapper();
+			Photon  photon = null;
+			try {
+				photon = mapper.readValue(jsonRes, Photon.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return photon;
+		} else {
+			System.out.println("Error requesting node! " + response.getStatus());
+			return null;
+		}
+
+	}
+
 	public DataListWrapper getList(WebTarget resource){
 		request = resource.request();
 		request.accept(MediaType.APPLICATION_JSON);
@@ -149,13 +175,14 @@ public class RequestSender {
 		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/update-photon/");
 		this.put(resource, target);
 	}
-	
-	public void sendPhotonData(NodeInfo target, PhotonData data) {
+
+	/*
+	public void sendPhotonData(NodeInfo target, Photon data) {
 		client = ClientBuilder.newClient();
 		resource = client.target("http://" + target.getIP() + ":" + target.getPort() + "/sendPhotonData");
 		this.post(resource, data);
 	}
-	
+	*/
 	
 
 	public String displayIndexPage(NodeInfo node) {
@@ -164,7 +191,7 @@ public class RequestSender {
 		return getString(resource);
 	}
 
-	public void post(WebTarget resource, PhotonData data)
+	public void post(WebTarget resource, Photon data)
 	{
 		Builder ib = resource.request(MediaType.APPLICATION_JSON);
 		Response res = ib.post(Entity.entity(data, MediaType.APPLICATION_JSON));

@@ -1,4 +1,4 @@
-package milestone4;
+package milestone4.models;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
