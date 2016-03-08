@@ -76,7 +76,7 @@ public class Node {
 			fingers[i] = new NodeInfo(ip, port, id);
 		}
 
-		createTimerCheckPredecessor();
+		//createTimerCheckPredecessor();
 		
 		System.out.println("New network created");
 		listenToRequests();
@@ -94,7 +94,7 @@ public class Node {
 
 		takeResponsibilities();
 
-		createTimerCheckPredecessor();
+		//createTimerCheckPredecessor();
 		
 		initFingerTable(ip, port);
 		listenToRequests();
@@ -158,7 +158,6 @@ public class Node {
 		if (responsible.equals("true")) {
 			System.out.println("Becoming new responsible node");
 			photonData = requestSender.getPhotonData(successor).getList();
-			//photonData = ... //Should get the list of PhotonData from the successor
 			updatePhoton(thisNode); //Begin being the responsible node
 		}
 	}
@@ -235,11 +234,14 @@ public class Node {
 				
 				PhotonData data = new PhotonData(time, light);
 				photonData.add(data);
-				//requestSender.sendPhotonData(successor, data);
+				
+				if(successor.getID() != thisNode.getID()) {
+					requestSender.sendPhotonData(successor, data);
+				}
 				
 				System.out.println(thisNode.getPort() + ": " + photonData.toString());
 			}
-		}, 0, 2000);
+		}, 0, 5000);
 	}
 	
 	//Receive data from node responsible for data, for replication purposes
@@ -253,6 +255,18 @@ public class Node {
 		
 		return Response.status(200).entity(pd).build();
 	}
+	
+	@GET
+	@Path("/photonData")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String showPhotonData() {
+		String res = "";
+		for(PhotonData pd : photonData) {
+			res += pd.toString();
+		}
+		return res;
+	}
+	
 
 	//Updates the finger table with the {param} ID node as potential finger
 	@PUT

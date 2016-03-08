@@ -1,8 +1,10 @@
 package milestone4;
 import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 //Basic POJO that gets sent over network as JSON
+@JsonIgnoreProperties
 public class NodeInfo {
 
 	private String ip;
