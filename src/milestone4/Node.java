@@ -49,6 +49,8 @@ public class Node {
 	private boolean isPhotonActive;
 	private int photonId;
 	private HtmlParser parser;
+	private int replicas;
+	private int replicatedValue;
 
 
 	public Node(String ip, int port) {
@@ -66,6 +68,9 @@ public class Node {
 		timer = new Timer();
 		photonData = new ArrayList<PhotonData>();
 		succList = new NodeInfo[2];
+		replicas = 2;
+		replicatedValue = 0;
+
 	}
 
 	public void join() { //No known node, this node starts new network with just this node in it
@@ -133,7 +138,7 @@ public class Node {
 	}
 
 	public void printPhotonInfo() {
-		System.out.println(photon.toString());
+		//System.out.println(photon.toString());
 	}
 
 	//Finds the responsible node for the photon and updates it and the successor of it
@@ -203,7 +208,7 @@ public class Node {
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Spark returned:\n" + photonJson);
+		//System.out.println("Spark returned:\n" + photonJson);
 		return Response.status(200).entity(photon).build();
 	}
 
@@ -236,6 +241,7 @@ public class Node {
 				}
 				
 				PhotonData data = new PhotonData(time, light);
+				data.replica = replicas;
 				photonData.add(data);
 				
 				if(successor.getID() != thisNode.getID()) {
@@ -260,7 +266,14 @@ public class Node {
 		else {
 			photonData.add(pd);
 		}
-		//System.out.println(thisNode.getPort() + ": " + photonData.toString());
+		replicatedValue = pd.replica;
+		if((pd.replica--) != 0){
+
+			if(successor.getID() != thisNode.getID()) {
+				requestSender.sendPhotonData(successor, pd);
+			}
+		}
+		//System.out.println(thisNode.getPort() + " recieved bunch of data: " + photonData.toString());
 		
 		return Response.status(200).entity(pd).build();
 	}
@@ -506,8 +519,12 @@ public class Node {
 			photon_map.put("id", photonId);
 			photon_map.put("link", "http://" + ip + ":" + port + "/photon");
 			photon_map.put("data", photon);
+			photon_map.put("replicas", replicas);
 			context.put("photon", photon_map);
-		}else if(photonData.size() > 0)context.put("photon_data", true);
+		}else if(photonData.size() > 0) {
+			context.put("photon_data", true);
+			context.put("replicated", replicatedValue);
+		}
 	}
 
 	@GET

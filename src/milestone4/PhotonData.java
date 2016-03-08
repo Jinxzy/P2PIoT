@@ -7,10 +7,12 @@ public class PhotonData {
 	
 	private String time;
 	private int light;
+	public int replica;
 	
 	public PhotonData(String time, int light) {
 		this.light = light;
 		this.time = time;
+		this.replica = 0;
 	}
 	
 	public PhotonData() {
@@ -24,6 +26,11 @@ public class PhotonData {
 	@JsonProperty("light")
 	public int getLight() {
 		return light;
+	}
+
+	@JsonProperty("replica")
+	public int getReplica() {
+		return replica;
 	}
 	
 	@JsonIgnore

@@ -56,6 +56,7 @@ public class NodeInfo {
 		return "http://" + ip + ":" + port + "/" + id;
 	}
 
+	@JsonIgnore
 	public int generateFingerId(int index){
 		return (id + (int) Math.pow(2, index)) % (int) Math.pow(2, 16);
 	}

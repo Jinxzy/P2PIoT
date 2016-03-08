@@ -27,7 +27,8 @@
                     <#if photon??>
                         <div class="col-xs-6 col-sm-3 placeholder">
                             <h4>Photon #${photon.id}</h4>
-                            <span class="text-muted">Current light level: ${photon.data.result}</span>
+                            <div class="text-muted">Current light level: ${photon.data.result}</div>
+                            <div class="text-muted">k: ${photon.replicas}</div>
                         </div>
 
                     </#if>
@@ -37,7 +38,7 @@
                     <h2 class="sub-header">Photon data</h2>
                     <#include "include/chart.ftl">
                 <#elseif photon_data??>
-                    <h2 class="sub-header">Photon replicated data</h2>
+                    <h2 class="sub-header">Photon persistenced data with k: ${replicated}</h2>
                     <#include "include/chart.ftl">
                 </#if>
 
