@@ -33,7 +33,7 @@
                         <div class="col-xs-6 col-sm-3 placeholder">
                             <form role="form">
                                 <div class="form-group">
-                                    <h4 class="">Photon Light</h4>
+                                    <h4 class="">Photon Led</h4>
                                     <input type="checkbox" name="light">
                                 </div>
                             </form>

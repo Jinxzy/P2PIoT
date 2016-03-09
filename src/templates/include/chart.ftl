@@ -80,7 +80,7 @@
         doPlot(addData);
     });
     setInterval(function(){
-        $.getJSON("/photon/light-data-last/50", function(data){
+        $.getJSON("/photon/light-data-last/100", function(data){
             var addData = [];
             for(var i = 0; i< data['time'].length; i++){
                 addData.push([ new Date(data['time'][i]),  data['light'][i]]);
